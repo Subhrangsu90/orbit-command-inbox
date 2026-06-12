@@ -2,12 +2,9 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   pgTable,
-  pgTableCreator,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-
-export const createTable = pgTableCreator((name) => `pg-drizzle_${name}`);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -17,6 +14,8 @@ export const user = pgTable("user", {
     .$defaultFn(() => false)
     .notNull(),
   image: text("image"),
+  themeMode: text("theme_mode").$defaultFn(() => "system").notNull(),
+  textScale: text("text_scale").$defaultFn(() => "comfortable").notNull(),
   createdAt: timestamp("created_at")
     .$defaultFn(() => /* @__PURE__ */ new Date())
     .notNull(),
