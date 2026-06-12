@@ -7,19 +7,28 @@ import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { MobileNavigation } from "./MobileNavigation";
 import { authClient } from "~/server/better-auth/client";
+import { useWorkspacePreferences } from "./workspacePreferencesContext";
 
 export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const session = authClient.useSession();
   const user = session.data?.user ?? null;
+  const { preferences, isLoading: isLoadingPrefs } = useWorkspacePreferences();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
-  // Redirect to login if not authenticated (handled in side effect)
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (!session.isPending && !session.data) {
       router.replace("/login");
     }
   }, [session.isPending, session.data, router]);
+
+  // Redirect to onboarding if authenticated but onboarding is incomplete
+  useEffect(() => {
+    if (!session.isPending && session.data && !isLoadingPrefs && !preferences.onboarded) {
+      router.replace("/onboarding");
+    }
+  }, [session.isPending, session.data, isLoadingPrefs, preferences.onboarded, router]);
 
   // Show premium loading state while session is being verified
   if (session.isPending || !session.data) {

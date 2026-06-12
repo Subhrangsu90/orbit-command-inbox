@@ -23,7 +23,9 @@ type WorkspacePreferencesContextValue = {
   appearance: AppearancePreferences;
   isLoading: boolean;
   isSaving: boolean;
+  provider: string | null;
   updatePreferences: (patch: Partial<WorkspacePreferences>) => Promise<void>;
+  refetchPreferences: () => Promise<unknown>;
 };
 
 export const WorkspacePreferencesContext =
@@ -43,7 +45,7 @@ export function WorkspacePreferencesProvider({
   );
 
   // tRPC query to get preferences from the server, enabled only if authenticated
-  const { data: serverPreferences, isLoading } = api.preferences.get.useQuery(undefined, {
+  const { data: serverPreferences, isLoading, refetch } = api.preferences.get.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
@@ -97,9 +99,11 @@ export function WorkspacePreferencesProvider({
       appearance,
       isLoading: isAuthenticated ? isLoading : false,
       isSaving: saveMutation.isPending,
+      provider: serverPreferences?.provider ?? null,
       updatePreferences,
+      refetchPreferences: refetch,
     }),
-    [localPreferences, appearance, isAuthenticated, isLoading, saveMutation.isPending, updatePreferences]
+    [localPreferences, appearance, isAuthenticated, isLoading, saveMutation.isPending, serverPreferences?.provider, updatePreferences, refetch]
   );
 
   return (

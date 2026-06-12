@@ -1,11 +1,14 @@
 import { defaultAppearance, type AppearancePreferences } from "./theme";
 
-export type WorkspacePreferences = AppearancePreferences;
+export type WorkspacePreferences = AppearancePreferences & {
+  onboarded: boolean;
+};
 
 const STORAGE_KEY = "votyx.workspace-preferences";
 
 const defaultPreferences: WorkspacePreferences = {
   ...defaultAppearance,
+  onboarded: false,
 };
 
 function normalizePreferences(parsed: Partial<WorkspacePreferences>): WorkspacePreferences {
@@ -20,6 +23,7 @@ function normalizePreferences(parsed: Partial<WorkspacePreferences>): WorkspaceP
       parsed.textScale === "large"
         ? parsed.textScale
         : defaultPreferences.textScale,
+    onboarded: typeof parsed.onboarded === "boolean" ? parsed.onboarded : defaultPreferences.onboarded,
   };
 }
 

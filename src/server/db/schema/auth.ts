@@ -16,6 +16,7 @@ export const user = pgTable("user", {
   image: text("image"),
   themeMode: text("theme_mode").$defaultFn(() => "system").notNull(),
   textScale: text("text_scale").$defaultFn(() => "comfortable").notNull(),
+  onboarded: boolean("onboarded").default(false).notNull(),
   createdAt: timestamp("created_at")
     .$defaultFn(() => /* @__PURE__ */ new Date())
     .notNull(),

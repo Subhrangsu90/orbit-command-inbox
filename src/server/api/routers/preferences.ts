@@ -2,7 +2,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
-import { user } from "~/server/db/schema/auth";
+import { user, account } from "~/server/db/schema/auth";
 
 export const preferencesRouter = createTRPCRouter({
   get: publicProcedure.query(async ({ ctx }) => {
@@ -10,20 +10,33 @@ export const preferencesRouter = createTRPCRouter({
       return {
         themeMode: "system" as const,
         textScale: "comfortable" as const,
+        onboarded: false,
+        provider: null,
       };
     }
 
-    const userData = await ctx.db.query.user.findFirst({
-      where: eq(user.id, ctx.session.user.id),
-      columns: {
-        themeMode: true,
-        textScale: true,
-      },
-    });
+    const [userData, userAccount] = await Promise.all([
+      ctx.db.query.user.findFirst({
+        where: eq(user.id, ctx.session.user.id),
+        columns: {
+          themeMode: true,
+          textScale: true,
+          onboarded: true,
+        },
+      }),
+      ctx.db.query.account.findFirst({
+        where: eq(account.userId, ctx.session.user.id),
+        columns: {
+          providerId: true,
+        },
+      }),
+    ]);
 
     return {
       themeMode: (userData?.themeMode ?? "system") as "light" | "dark" | "system",
       textScale: (userData?.textScale ?? "comfortable") as "compact" | "comfortable" | "large",
+      onboarded: userData?.onboarded ?? false,
+      provider: userAccount?.providerId ?? "credential",
     };
   }),
 
@@ -49,4 +62,16 @@ export const preferencesRouter = createTRPCRouter({
         textScale: input.textScale,
       };
     }),
+
+  completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db
+      .update(user)
+      .set({
+        onboarded: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(user.id, ctx.session.user.id));
+
+    return { success: true };
+  }),
 });
