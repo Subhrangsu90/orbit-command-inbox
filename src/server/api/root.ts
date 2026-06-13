@@ -1,5 +1,4 @@
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
-import { helloRouter } from "~/server/api/routers/hello";
 import { preferencesRouter } from "~/server/api/routers/preferences";
 import { corsairRouter } from "~/server/api/routers/corsair";
 
@@ -9,7 +8,6 @@ import { corsairRouter } from "~/server/api/routers/corsair";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  hello: helloRouter,
   preferences: preferencesRouter,
   corsair: corsairRouter,
 });
