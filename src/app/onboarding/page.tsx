@@ -2,11 +2,13 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, CalendarDays, CheckCircle2, ArrowRight, Sparkles, AlertCircle } from "lucide-react";
+import { CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 import { authClient } from "~/server/better-auth/client";
 import { useWorkspacePreferences } from "~/app/_components/workspacePreferencesContext";
 import { api } from "~/trpc/react";
 import { Logo } from "~/app/_components/Logo";
+import { Button } from "~/app/_components/ui/button";
+import { GmailIcon, GoogleCalendarIcon } from "~/app/_components/ui/icons";
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -109,10 +111,8 @@ export default function OnboardingPage() {
               : "bg-surface-container-low border-outline-variant hover:border-outline"
           }`}>
             <div className="space-y-3">
-              <div className={`size-10 rounded-xl grid place-items-center ${
-                connections?.gmail ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant"
-              }`}>
-                <Mail className="size-5" />
+              <div className="size-10 rounded-xl grid place-items-center bg-surface-container-high border border-outline-variant shadow-inner p-2.5">
+                <GmailIcon className="size-full" />
               </div>
               <div>
                 <h3 className="font-bold text-sm text-on-surface">Gmail Account</h3>
@@ -128,20 +128,25 @@ export default function OnboardingPage() {
                   <span className="inline-flex self-start items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-2xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     <CheckCircle2 className="size-3" /> Connected
                   </span>
-                  <button
+                  <Button
+                    variant="text"
+                    size="sm"
+                    loading={disconnectMutation.isPending && disconnectMutation.variables?.plugin === "gmail"}
                     onClick={() => void handleDisconnect("gmail")}
-                    className="text-3xs font-semibold text-error hover:underline text-left"
+                    className="text-3xs font-semibold !text-error hover:underline p-0 justify-start h-auto"
                   >
                     Disconnect account
-                  </button>
+                  </Button>
                 </div>
               ) : (
-                <button
+                <Button
+                  variant="primary"
+                  size="md"
                   onClick={() => handleConnect("gmail")}
-                  className="w-full bg-primary hover:bg-primary-container text-on-primary px-4 py-2 rounded-xl text-2xs font-bold transition shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full text-2xs font-bold !rounded-xl shadow-sm"
                 >
                   Connect Gmail
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -153,10 +158,8 @@ export default function OnboardingPage() {
               : "bg-surface-container-low border-outline-variant hover:border-outline"
           }`}>
             <div className="space-y-3">
-              <div className={`size-10 rounded-xl grid place-items-center ${
-                connections?.googlecalendar ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant"
-              }`}>
-                <CalendarDays className="size-5" />
+              <div className="size-10 rounded-xl grid place-items-center bg-surface-container-high border border-outline-variant shadow-inner p-2.5">
+                <GoogleCalendarIcon className="size-full" />
               </div>
               <div>
                 <h3 className="font-bold text-sm text-on-surface">Google Calendar</h3>
@@ -172,20 +175,25 @@ export default function OnboardingPage() {
                   <span className="inline-flex self-start items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-2xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     <CheckCircle2 className="size-3" /> Connected
                   </span>
-                  <button
+                  <Button
+                    variant="text"
+                    size="sm"
+                    loading={disconnectMutation.isPending && disconnectMutation.variables?.plugin === "googlecalendar"}
                     onClick={() => void handleDisconnect("googlecalendar")}
-                    className="text-3xs font-semibold text-error hover:underline text-left"
+                    className="text-3xs font-semibold !text-error hover:underline p-0 justify-start h-auto"
                   >
                     Disconnect calendar
-                  </button>
+                  </Button>
                 </div>
               ) : (
-                <button
+                <Button
+                  variant="primary"
+                  size="md"
                   onClick={() => handleConnect("googlecalendar")}
-                  className="w-full bg-primary hover:bg-primary-container text-on-primary px-4 py-2 rounded-xl text-2xs font-bold transition shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full text-2xs font-bold !rounded-xl shadow-sm"
                 >
                   Connect Calendar
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -193,23 +201,26 @@ export default function OnboardingPage() {
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-6 border-t border-outline-variant flex flex-col items-center gap-3">
-          <button
+        <div className="pt-6 max-w-lg mx-auto border-t border-outline-variant flex flex-col items-center gap-3">
+          <Button
+            variant="primary"
+            size="md"
+            loading={completeOnboardingMutation.isPending}
             onClick={() => void handleFinish()}
-            disabled={completeOnboardingMutation.isPending}
-            className="w-full bg-primary hover:bg-primary-container text-on-primary py-3 rounded-2xl text-xs font-bold transition shadow-sm flex items-center justify-center gap-1.5 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+            className="w-full !rounded-2xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5"
           >
             {connections?.gmail || connections?.googlecalendar ? "Finish Setup & Launch" : "Launch Workspace"}
             <ArrowRight className="size-4" />
-          </button>
+          </Button>
           
-          <button
+          <Button
+            variant="text"
+            size="sm"
             onClick={() => void handleFinish()}
-            disabled={completeOnboardingMutation.isPending}
             className="text-on-surface-variant hover:text-on-surface text-2xs font-semibold transition hover:underline"
           >
             Skip for now (you can connect later in Settings)
-          </button>
+          </Button>
         </div>
 
       </div>
