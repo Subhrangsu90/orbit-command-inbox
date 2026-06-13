@@ -15,13 +15,18 @@ export default function OnboardingPage() {
   const session = authClient.useSession();
   const { preferences, isLoading: isLoadingPrefs, refetchPreferences } = useWorkspacePreferences();
 
-  // Corsair integration query & mutations
-  const { data: connections, isLoading: isLoadingConnections, refetch: refetchConnections } = api.corsair.getConnections.useQuery(undefined, {
+  // Integrations query & mutations
+  const { data: connections, isLoading: isLoadingConnections, refetch: refetchConnections } = api.integrations.getStatus.useQuery(undefined, {
     enabled: !!session.data,
   });
 
   const completeOnboardingMutation = api.preferences.completeOnboarding.useMutation();
-  const disconnectMutation = api.corsair.disconnect.useMutation({
+  const disconnectGmailMutation = api.integrations.disconnectGmail.useMutation({
+    onSuccess: () => {
+      void refetchConnections();
+    },
+  });
+  const disconnectCalendarMutation = api.integrations.disconnectCalendar.useMutation({
     onSuccess: () => {
       void refetchConnections();
     },
@@ -41,13 +46,30 @@ export default function OnboardingPage() {
     }
   }, [session.isPending, session.data, isLoadingPrefs, preferences.onboarded, router]);
 
-  function handleConnect(plugin: "gmail" | "googlecalendar") {
-    window.location.href = `/api/corsair/auth?plugin=${plugin}`;
+  const getGmailUrlMutation = api.integrations.getGmailConnectUrl.useMutation();
+  const getCalendarUrlMutation = api.integrations.getCalendarConnectUrl.useMutation();
+
+  async function handleConnect(plugin: "gmail" | "googlecalendar") {
+    try {
+      if (plugin === "gmail") {
+        const { url } = await getGmailUrlMutation.mutateAsync({ redirectTo: "/chat" });
+        window.location.href = url;
+      } else {
+        const { url } = await getCalendarUrlMutation.mutateAsync({ redirectTo: "/chat" });
+        window.location.href = url;
+      }
+    } catch (e) {
+      console.error(`Failed to generate connect URL for ${plugin}:`, e);
+    }
   }
 
   async function handleDisconnect(plugin: "gmail" | "googlecalendar") {
     try {
-      await disconnectMutation.mutateAsync({ plugin });
+      if (plugin === "gmail") {
+        await disconnectGmailMutation.mutateAsync();
+      } else {
+        await disconnectCalendarMutation.mutateAsync();
+      }
     } catch (e) {
       console.error(`Failed to disconnect ${plugin}:`, e);
     }
@@ -131,7 +153,7 @@ export default function OnboardingPage() {
                   <Button
                     variant="text"
                     size="sm"
-                    loading={disconnectMutation.isPending && disconnectMutation.variables?.plugin === "gmail"}
+                    loading={disconnectGmailMutation.isPending}
                     onClick={() => void handleDisconnect("gmail")}
                     className="text-3xs font-semibold !text-error hover:underline p-0 justify-start h-auto"
                   >
@@ -142,7 +164,8 @@ export default function OnboardingPage() {
                 <Button
                   variant="primary"
                   size="md"
-                  onClick={() => handleConnect("gmail")}
+                  loading={getGmailUrlMutation.isPending}
+                  onClick={() => void handleConnect("gmail")}
                   className="w-full text-2xs font-bold !rounded-xl shadow-sm"
                 >
                   Connect Gmail
@@ -153,7 +176,7 @@ export default function OnboardingPage() {
 
           {/* Calendar Card */}
           <div className={`p-6 border rounded-2xl flex flex-col justify-between gap-6 transition-all duration-200 ${
-            connections?.googlecalendar 
+            connections?.calendar 
               ? "bg-primary/5 border-primary/20 shadow-sm" 
               : "bg-surface-container-low border-outline-variant hover:border-outline"
           }`}>
@@ -170,7 +193,7 @@ export default function OnboardingPage() {
             </div>
 
             <div className="pt-2">
-              {connections?.googlecalendar ? (
+              {connections?.calendar ? (
                 <div className="flex flex-col gap-2">
                   <span className="inline-flex self-start items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-2xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                     <CheckCircle2 className="size-3" /> Connected
@@ -178,7 +201,7 @@ export default function OnboardingPage() {
                   <Button
                     variant="text"
                     size="sm"
-                    loading={disconnectMutation.isPending && disconnectMutation.variables?.plugin === "googlecalendar"}
+                    loading={disconnectCalendarMutation.isPending}
                     onClick={() => void handleDisconnect("googlecalendar")}
                     className="text-3xs font-semibold !text-error hover:underline p-0 justify-start h-auto"
                   >
@@ -189,7 +212,8 @@ export default function OnboardingPage() {
                 <Button
                   variant="primary"
                   size="md"
-                  onClick={() => handleConnect("googlecalendar")}
+                  loading={getCalendarUrlMutation.isPending}
+                  onClick={() => void handleConnect("googlecalendar")}
                   className="w-full text-2xs font-bold !rounded-xl shadow-sm"
                 >
                   Connect Calendar
@@ -209,7 +233,7 @@ export default function OnboardingPage() {
             onClick={() => void handleFinish()}
             className="w-full !rounded-2xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5"
           >
-            {connections?.gmail || connections?.googlecalendar ? "Finish Setup & Launch" : "Launch Workspace"}
+            {connections?.gmail || connections?.calendar ? "Finish Setup & Launch" : "Launch Workspace"}
             <ArrowRight className="size-4" />
           </Button>
           

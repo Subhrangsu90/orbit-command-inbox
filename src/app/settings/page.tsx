@@ -25,21 +25,43 @@ export default function SettingsPage() {
   const { preferences, updatePreferences, isSaving, isLoading, provider } = useWorkspacePreferences();
   const [activeTab, setActiveTab] = useState<"general" | "integrations">("general");
 
-  // Corsair integration query & mutations
-  const { data: connections, isLoading: isLoadingConnections, refetch } = api.corsair.getConnections.useQuery();
-  const disconnectMutation = api.corsair.disconnect.useMutation({
+  // Integrations query & mutations
+  const { data: connections, isLoading: isLoadingConnections, refetch } = api.integrations.getStatus.useQuery();
+  const disconnectGmailMutation = api.integrations.disconnectGmail.useMutation({
+    onSuccess: () => {
+      void refetch();
+    },
+  });
+  const disconnectCalendarMutation = api.integrations.disconnectCalendar.useMutation({
     onSuccess: () => {
       void refetch();
     },
   });
 
-  function handleConnect(plugin: "gmail" | "googlecalendar") {
-    window.location.href = `/api/corsair/auth?plugin=${plugin}`;
+  const getGmailUrlMutation = api.integrations.getGmailConnectUrl.useMutation();
+  const getCalendarUrlMutation = api.integrations.getCalendarConnectUrl.useMutation();
+
+  async function handleConnect(plugin: "gmail" | "googlecalendar") {
+    try {
+      if (plugin === "gmail") {
+        const { url } = await getGmailUrlMutation.mutateAsync({ redirectTo: "/chat" });
+        window.location.href = url;
+      } else {
+        const { url } = await getCalendarUrlMutation.mutateAsync({ redirectTo: "/chat" });
+        window.location.href = url;
+      }
+    } catch (e) {
+      console.error(`Failed to generate connect URL for ${plugin}:`, e);
+    }
   }
 
   async function handleDisconnect(plugin: "gmail" | "googlecalendar") {
     try {
-      await disconnectMutation.mutateAsync({ plugin });
+      if (plugin === "gmail") {
+        await disconnectGmailMutation.mutateAsync();
+      } else {
+        await disconnectCalendarMutation.mutateAsync();
+      }
     } catch (e) {
       console.error(`Failed to disconnect ${plugin}:`, e);
     }
@@ -239,7 +261,7 @@ export default function SettingsPage() {
                       <Button
                         variant="error"
                         size="sm"
-                        loading={disconnectMutation.isPending && disconnectMutation.variables?.plugin === "gmail"}
+                        loading={disconnectGmailMutation.isPending}
                         onClick={() => void handleDisconnect("gmail")}
                         className="rounded-lg !py-1.5 !px-2.5 text-2xs font-semibold shadow-sm"
                       >
@@ -249,7 +271,8 @@ export default function SettingsPage() {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => handleConnect("gmail")}
+                        loading={getGmailUrlMutation.isPending}
+                        onClick={() => void handleConnect("gmail")}
                         className="rounded-lg !py-1.5 !px-3 text-2xs font-semibold shadow-sm"
                       >
                         Connect Gmail
@@ -270,7 +293,7 @@ export default function SettingsPage() {
                         <p className="text-3xs text-on-surface-variant font-medium">Scheduled invites & agenda triage</p>
                       </div>
                     </div>
-                    {connections?.googlecalendar ? (
+                    {connections?.calendar ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-3xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                         <CheckCircle2 className="size-3" /> Connected
                       </span>
@@ -283,11 +306,11 @@ export default function SettingsPage() {
                   
                   <div className="flex items-center justify-between border-t border-outline-variant/30 pt-4">
                     <span className="text-[10px] text-on-surface-variant font-medium">Auto-Sync status: ON</span>
-                    {connections?.googlecalendar ? (
+                    {connections?.calendar ? (
                       <Button
                         variant="error"
                         size="sm"
-                        loading={disconnectMutation.isPending && disconnectMutation.variables?.plugin === "googlecalendar"}
+                        loading={disconnectCalendarMutation.isPending}
                         onClick={() => void handleDisconnect("googlecalendar")}
                         className="rounded-lg !py-1.5 !px-2.5 text-2xs font-semibold shadow-sm"
                       >
@@ -297,7 +320,8 @@ export default function SettingsPage() {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => handleConnect("googlecalendar")}
+                        loading={getCalendarUrlMutation.isPending}
+                        onClick={() => void handleConnect("googlecalendar")}
                         className="rounded-lg !py-1.5 !px-3 text-2xs font-semibold shadow-sm"
                       >
                         Connect Calendar
