@@ -1,25 +1,27 @@
-import { corsair } from "~/server/corsair";
+import { corsair, ensureCorsairConfigured } from "~/server/corsair";
 import { env } from "~/env";
 import { generateOAuthUrl } from "corsair/oauth";
 
 export const integrationsService = {
   async getStatus(tenantId: string) {
+    await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
 
     let gmailConnected = false;
     let calendarConnected = false;
 
     try {
-      const gmailToken = await client.gmail.keys.get_access_token();
-      gmailConnected = gmailToken !== null;
+      const gmailToken = await client.gmail.keys.get_refresh_token();
+      gmailConnected = Boolean(gmailToken);
     } catch (error) {
       console.error("[integrations.getStatus gmail error]", error);
       gmailConnected = false;
     }
 
     try {
-      const calendarToken = await client.googlecalendar.keys.get_access_token();
-      calendarConnected = calendarToken !== null;
+      const calendarToken =
+        await client.googlecalendar.keys.get_refresh_token();
+      calendarConnected = Boolean(calendarToken);
     } catch (error) {
       console.error("[integrations.getStatus calendar error]", error);
       calendarConnected = false;
@@ -32,7 +34,8 @@ export const integrationsService = {
     };
   },
 
-  async getGmailConnectUrl(tenantId: string, redirectTo: string) {
+  async getGmailConnectUrl(tenantId: string, _redirectTo: string) {
+    await ensureCorsairConfigured();
     const redirectUri = `${env.BETTER_AUTH_URL}/api/corsair/auth/callback`;
     try {
       const { url } = await generateOAuthUrl(corsair, "gmail", {
@@ -46,7 +49,8 @@ export const integrationsService = {
     }
   },
 
-  async getCalendarConnectUrl(tenantId: string, redirectTo: string) {
+  async getCalendarConnectUrl(tenantId: string, _redirectTo: string) {
+    await ensureCorsairConfigured();
     const redirectUri = `${env.BETTER_AUTH_URL}/api/corsair/auth/callback`;
     try {
       const { url } = await generateOAuthUrl(corsair, "googlecalendar", {
@@ -61,6 +65,7 @@ export const integrationsService = {
   },
 
   async disconnectGmail(tenantId: string) {
+    await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
     try {
       await client.gmail.keys.set_access_token(null);
@@ -73,6 +78,7 @@ export const integrationsService = {
   },
 
   async disconnectCalendar(tenantId: string) {
+    await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
     try {
       await client.googlecalendar.keys.set_access_token(null);

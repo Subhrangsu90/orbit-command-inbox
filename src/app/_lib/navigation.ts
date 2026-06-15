@@ -5,22 +5,56 @@ export type NavigationItem = {
   exact?: boolean;
 };
 
-export const primaryNavigation: NavigationItem[] = [
+export type NavigationGroup = {
+  label?: string;
+  icon?: string;
+  items: NavigationItem[];
+};
+
+export const primaryNavigationGroups: NavigationGroup[] = [
   {
-    to: "/",
-    label: "Inbox Triage",
+    label: "Email",
     icon: "mail",
-    exact: true,
+    items: [
+      {
+        to: "/?mailbox=inbox",
+        label: "Inbox",
+        icon: "inbox",
+        exact: true,
+      },
+      {
+        to: "/?mailbox=starred",
+        label: "Starred",
+        icon: "star",
+        exact: true,
+      },
+      {
+        to: "/?mailbox=sent",
+        label: "Sent",
+        icon: "send",
+        exact: true,
+      },
+      {
+        to: "/?mailbox=drafts",
+        label: "Drafts",
+        icon: "draft",
+        exact: true,
+      },
+    ],
   },
   {
-    to: "/calendar",
-    label: "Calendar",
-    icon: "calendar_month",
-  },
-  {
-    to: "/settings",
-    label: "Settings",
-    icon: "settings",
+    items: [
+      {
+        to: "/calendar",
+        label: "Calendar",
+        icon: "calendar_month",
+      },
+      {
+        to: "/settings",
+        label: "Settings",
+        icon: "settings",
+      },
+    ],
   },
 ];
 

@@ -22,6 +22,8 @@ export const env = createEnv({
       .default("development"),
     // Corsair core
     CORSAIR_KEK: z.string(),
+    GMAIL_TOPIC_ID: z.string().optional(),
+    CORSAIR_WEBHOOK_TENANT_ID: z.string().optional(),
     // OpenAI for agent chat
     OPENAI_API_KEY: z.string().optional(),
   },
@@ -49,6 +51,8 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     CORSAIR_KEK: process.env.CORSAIR_KEK,
+    GMAIL_TOPIC_ID: process.env.GMAIL_TOPIC_ID,
+    CORSAIR_WEBHOOK_TENANT_ID: process.env.CORSAIR_WEBHOOK_TENANT_ID,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
   },
   /**

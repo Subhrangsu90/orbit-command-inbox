@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { authClient } from "~/server/better-auth/client";
-import { primaryNavigation } from "../_lib/navigation";
+import { primaryNavigationGroups } from "../_lib/navigation";
 import { Logo } from "./Logo";
 
 type SidebarProps = {
@@ -23,7 +23,10 @@ const fallbackAvatar =
 
 export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
   const [isBrandHovered, setIsBrandHovered] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>("Email");
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentMailbox = searchParams.get("mailbox") ?? "inbox";
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 1024px)");
@@ -39,6 +42,12 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [isExpanded, onToggleExpanded]);
 
+  useEffect(() => {
+    if (pathname === "/") {
+      setOpenGroup("Email");
+    }
+  }, [pathname]);
+
   async function handleLogout() {
     await authClient.signOut();
     window.location.reload();
@@ -46,14 +55,14 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
 
   return (
     <aside
-      className={`hidden md:flex fixed left-0 top-0 h-full flex-col py-6 bg-surface-container-low border-r border-outline-variant z-45 overflow-hidden transition-[width] duration-200 ${
+      className={`bg-surface-container-low border-outline-variant fixed top-0 left-0 z-45 hidden h-full flex-col overflow-hidden border-r py-6 transition-[width] duration-200 md:flex ${
         isExpanded ? "w-80" : "w-20"
       }`}
     >
       {/* Brand Header */}
-      <div className="mb-4 flex h-10 items-center justify-between px-md shrink-0">
+      <div className="px-md mb-4 flex h-10 shrink-0 items-center justify-between">
         <div
-          className="relative flex min-w-0 w-full items-center justify-between gap-md"
+          className="gap-md relative flex w-full min-w-0 items-center justify-between"
           onMouseEnter={() => setIsBrandHovered(true)}
           onMouseLeave={() => setIsBrandHovered(false)}
         >
@@ -65,7 +74,7 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
               aria-label="Expand sidebar"
               aria-expanded={isExpanded}
               title="Expand sidebar"
-              className="grid size-10 shrink-0 place-items-center rounded-full text-primary transition-colors hover:bg-surface-container-high"
+              className="text-primary hover:bg-surface-container-high grid size-10 shrink-0 place-items-center rounded-full transition-colors"
             >
               {isBrandHovered ? (
                 <span className="material-symbols-outlined">
@@ -82,7 +91,7 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
             <>
               <div
                 aria-label="Orbit"
-                className="flex h-10 items-center text-primary"
+                className="text-primary flex h-10 items-center"
                 title="Orbit"
               >
                 <Logo showText={true} size={24} />
@@ -93,7 +102,7 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
                 aria-label="Collapse sidebar"
                 aria-expanded={isExpanded}
                 title="Collapse sidebar"
-                className="grid size-10 shrink-0 place-items-center rounded-full text-primary transition-colors hover:bg-surface-container-high"
+                className="text-primary hover:bg-surface-container-high grid size-10 shrink-0 place-items-center rounded-full transition-colors"
               >
                 <span className="material-symbols-outlined">
                   left_panel_close
@@ -104,38 +113,136 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
         </div>
       </div>
 
-
-
       {/* Nav Menu */}
-      <nav className="flex-grow space-y-1 overflow-y-auto overflow-x-hidden">
-        {primaryNavigation.map((item) => {
-          const isActive = item.exact ? pathname === item.to : pathname.startsWith(item.to);
+      <nav className="flex-grow space-y-1 overflow-x-hidden overflow-y-auto">
+        {primaryNavigationGroups.map((group, groupIndex) => {
+          const isGroupOpen = group.label === openGroup;
+          const isGroupActive = group.items.some((item) => {
+            const target = new URL(item.to, "https://orbit.local");
+            const targetMailbox = target.searchParams.get("mailbox");
+
+            return targetMailbox
+              ? pathname === "/" && currentMailbox === targetMailbox
+              : item.exact
+                ? pathname === target.pathname
+                : pathname.startsWith(target.pathname);
+          });
+          const submenuId = group.label
+            ? `${group.label.toLowerCase()}-submenu`
+            : undefined;
+
           return (
-            <Link
-              key={item.to}
-              aria-label={item.label}
-              className={`mx-2 flex h-12 items-center gap-md rounded-full px-md transition-all ${
-                isActive
-                  ? "bg-secondary-container text-on-secondary-container font-bold shadow-sm"
-                  : "text-on-surface-variant hover:bg-surface-container-high"
-              }`}
-              title={item.label}
-              href={item.to}
+            <div
+              key={group.label ?? `navigation-group-${groupIndex}`}
+              className={
+                groupIndex > 0
+                  ? "border-outline-variant mx-2 mt-3 border-t pt-3"
+                  : undefined
+              }
             >
-              <span className="material-symbols-outlined shrink-0">
-                {item.icon}
-              </span>
-              {isExpanded && (
-                <span className="whitespace-nowrap font-sans text-label-lg transition-opacity duration-150">
-                  {item.label}
-                </span>
+              {group.label && (
+                <button
+                  type="button"
+                  aria-controls={submenuId}
+                  aria-expanded={isExpanded && isGroupOpen}
+                  aria-label={`${isGroupOpen ? "Collapse" : "Expand"} ${group.label} menu`}
+                  title={group.label}
+                  onClick={() => {
+                    if (!isExpanded) {
+                      setOpenGroup(group.label ?? null);
+                      onToggleExpanded();
+                      return;
+                    }
+
+                    setOpenGroup(isGroupOpen ? null : (group.label ?? null));
+                  }}
+                  className={`gap-md px-md mx-2 flex h-12 w-[calc(100%-1rem)] items-center rounded-full text-left transition-colors ${
+                    isGroupActive
+                      ? "text-on-secondary-container bg-secondary-container/60 font-bold"
+                      : "text-on-surface-variant hover:bg-surface-container-high"
+                  }`}
+                >
+                  {group.icon && (
+                    <span className="material-symbols-outlined shrink-0">
+                      {group.icon}
+                    </span>
+                  )}
+                  {isExpanded && (
+                    <>
+                      <span className="text-label-lg flex-1 font-sans whitespace-nowrap">
+                        {group.label}
+                      </span>
+                      <span
+                        className={`material-symbols-outlined text-xl transition-transform duration-200 ${
+                          isGroupOpen ? "rotate-180" : ""
+                        }`}
+                      >
+                        expand_more
+                      </span>
+                    </>
+                  )}
+                </button>
               )}
-            </Link>
+
+              <div
+                id={submenuId}
+                className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                  group.label
+                    ? isExpanded && isGroupOpen
+                      ? "grid-rows-[1fr] opacity-100"
+                      : "grid-rows-[0fr] opacity-0"
+                    : "grid-rows-[1fr] opacity-100"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div
+                    className={`space-y-1 ${
+                      group.label
+                        ? "border-outline-variant mt-1 ml-8 border-l pl-2"
+                        : ""
+                    }`}
+                  >
+                    {group.items.map((item) => {
+                      const target = new URL(item.to, "https://orbit.local");
+                      const targetMailbox = target.searchParams.get("mailbox");
+                      const isActive = targetMailbox
+                        ? pathname === "/" && currentMailbox === targetMailbox
+                        : item.exact
+                          ? pathname === target.pathname
+                          : pathname.startsWith(target.pathname);
+
+                      return (
+                        <Link
+                          key={item.to}
+                          aria-label={item.label}
+                          className={`gap-md px-md flex h-12 items-center rounded-full transition-all ${
+                            group.label ? "mr-2 h-10" : "mx-0"
+                          } ${
+                            isActive
+                              ? "bg-secondary-container text-on-secondary-container font-bold shadow-sm"
+                              : "text-on-surface-variant hover:bg-surface-container-high"
+                          }`}
+                          title={item.label}
+                          href={item.to}
+                        >
+                          <span className="material-symbols-outlined shrink-0">
+                            {item.icon}
+                          </span>
+                          {isExpanded && (
+                            <span className="text-label-lg font-sans whitespace-nowrap transition-opacity duration-150">
+                              {item.label}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
           );
         })}
       </nav>
-
-
     </aside>
   );
 }

@@ -1,25 +1,25 @@
 import { eq, and } from "drizzle-orm";
-import { corsairAccounts, corsairIntegrations } from "~/server/db/schema/corsair";
+import {
+  corsairAccounts,
+  corsairIntegrations,
+} from "~/server/db/schema/corsair";
+import { integrationsService } from "~/server/api/routers/integrations/service";
 
 export const corsairService = {
-  async getConnections(db: any, tenantId: string) {
-    // Find all accounts for the tenant and join with integrations to get the names
-    const accounts = await db
-      .select({
-        id: corsairAccounts.id,
-        integrationName: corsairIntegrations.name,
-      })
-      .from(corsairAccounts)
-      .innerJoin(corsairIntegrations, eq(corsairAccounts.integrationId, corsairIntegrations.id))
-      .where(eq(corsairAccounts.tenantId, tenantId));
+  async getConnections(_db: any, tenantId: string) {
+    const status = await integrationsService.getStatus(tenantId);
 
     return {
-      gmail: accounts.some((acc: any) => acc.integrationName === "gmail"),
-      googlecalendar: accounts.some((acc: any) => acc.integrationName === "googlecalendar"),
+      gmail: status.gmail,
+      googlecalendar: status.calendar,
     };
   },
 
-  async disconnect(db: any, tenantId: string, input: { plugin: "gmail" | "googlecalendar" }) {
+  async disconnect(
+    db: any,
+    tenantId: string,
+    input: { plugin: "gmail" | "googlecalendar" },
+  ) {
     // Find the integration first
     const [integration] = await db
       .select()
