@@ -16,6 +16,8 @@ type EmailSummary = {
   recipientEmail: string;
   date: string;
   isUnread: boolean;
+  priority?: "high" | "medium" | "low";
+  priorityReason?: string;
 };
 
 type EmailListItemProps = {
@@ -92,7 +94,21 @@ export function EmailListItem({
           >
             {showRecipient ? `To: ${displayName}` : displayName}
           </span>
-          <span className="text-3xs text-on-surface-variant/70 shrink-0">
+          {email.priority && (
+            <span
+              title={email.priorityReason}
+              className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${
+                email.priority === "high"
+                  ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                  : email.priority === "medium"
+                    ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                    : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+              }`}
+            >
+              {email.priority}
+            </span>
+          )}
+          <span className="text-3xs text-on-surface-variant/70 shrink-0 ml-auto">
             {email.date ? new Date(email.date).toLocaleDateString() : ""}
           </span>
         </div>

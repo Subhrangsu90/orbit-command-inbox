@@ -13,6 +13,15 @@ export type NavigationGroup = {
 
 export const primaryNavigationGroups: NavigationGroup[] = [
   {
+    items: [
+      {
+        to: "/chat",
+        label: "Agent Chat",
+        icon: "forum",
+      },
+    ],
+  },
+  {
     label: "Email",
     icon: "mail",
     items: [
@@ -59,6 +68,11 @@ export const primaryNavigationGroups: NavigationGroup[] = [
 ];
 
 export const mobileNavigation: NavigationItem[] = [
+  {
+    to: "/chat",
+    label: "Agent Chat",
+    icon: "forum",
+  },
   {
     to: "/",
     label: "Inbox",

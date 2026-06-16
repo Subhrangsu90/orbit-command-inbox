@@ -225,7 +225,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-6 max-w-lg mx-auto border-t border-outline-variant flex flex-col items-center gap-3">
+        <div className="pt-6 max-w-[32rem] mx-auto border-t border-outline-variant flex flex-col items-center gap-3">
           <Button
             variant="primary"
             size="md"

@@ -345,7 +345,7 @@ export function CalendarAgendaSidebar({
             role="dialog"
             aria-modal="true"
             aria-labelledby="calendar-event-title"
-            className="border-outline-variant bg-surface-container relative w-full max-w-md space-y-5 rounded-3xl border p-6 shadow-2xl"
+            className="border-outline-variant bg-surface-container relative w-full max-w-[28rem] space-y-5 rounded-3xl border p-6 shadow-2xl"
           >
             <button
               type="button"

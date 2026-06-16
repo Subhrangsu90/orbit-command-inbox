@@ -21,7 +21,8 @@ type EmailSummary = {
   recipientName: string;
   recipientEmail: string;
   date: string;
-  isUnread: boolean;
+  priority?: "high" | "medium" | "low";
+  priorityReason?: string;
 };
 
 type ThreadMessage = {
@@ -108,6 +109,26 @@ export function EmailDetailDialog({
               )}
               <p className="mt-0.5">To: {displayedEmail.to}</p>
               <p className="mt-0.5">Date: {displayedEmail.date}</p>
+              {displayedEmail.priority && (
+                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                      displayedEmail.priority === "high"
+                        ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                        : displayedEmail.priority === "medium"
+                          ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                          : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                    }`}
+                  >
+                    Priority: {displayedEmail.priority}
+                  </span>
+                  {displayedEmail.priorityReason && (
+                    <span className="text-[10px] text-on-surface-variant italic">
+                      {displayedEmail.priorityReason}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <button

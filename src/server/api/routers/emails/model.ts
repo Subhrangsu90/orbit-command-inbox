@@ -25,6 +25,8 @@ export const emailDetailsModel = z.object({
   recipientEmail: z.string(),
   date: z.string(),
   isUnread: z.boolean(),
+  priority: z.enum(["high", "medium", "low"]).optional(),
+  priorityReason: z.string().optional(),
 });
 
 export const getEmailInputModel = z.object({

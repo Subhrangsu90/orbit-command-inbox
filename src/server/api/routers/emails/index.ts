@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { emailsService } from "./service";
 import {
@@ -418,6 +419,19 @@ export const emailsRouter = createTRPCRouter({
     .query(({ ctx, input }) =>
       emailsService.searchLocal(ctx.session.user.id, input),
     ),
+
+  searchSemantic: protectedProcedure
+    .input(
+      z.object({
+        q: z.string().min(1),
+        limit: z.number().min(1).max(50).default(20),
+      })
+    )
+    .output(listEmailsOutputModel)
+    .query(async ({ ctx, input }) => {
+      const { searchSemantic } = await import("./vectorSearch");
+      return searchSemantic(ctx.session.user.id, input.q, input.limit);
+    }),
 
 });
 

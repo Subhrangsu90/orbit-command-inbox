@@ -47,6 +47,41 @@ export function WorkspaceLayout({
     router,
   ]);
 
+  // Global customizable keyboard shortcut for navigation to Settings
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.getAttribute("contenteditable") === "true"
+      ) {
+        return;
+      }
+
+      // Build key combination matching pattern
+      const keys: string[] = [];
+      if (e.ctrlKey || e.metaKey) keys.push("Ctrl");
+      if (e.altKey) keys.push("Alt");
+      if (e.shiftKey) keys.push("Shift");
+
+      const mainKey = e.key;
+      if (!["Control", "Alt", "Shift", "Meta"].includes(mainKey)) {
+        keys.push(mainKey.length === 1 ? mainKey.toLowerCase() : mainKey);
+      }
+
+      const pressedShortcut = keys.join("+");
+      const configuredShortcut = preferences.settingsShortcut || "Alt+s";
+
+      if (pressedShortcut.toLowerCase() === configuredShortcut.toLowerCase()) {
+        e.preventDefault();
+        router.push("/settings");
+      }
+    }
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [preferences.settingsShortcut, router]);
+
   // Show premium loading state while session is being verified
   if (session.isPending || !session.data) {
     return (

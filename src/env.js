@@ -26,6 +26,9 @@ export const env = createEnv({
     CORSAIR_WEBHOOK_TENANT_ID: z.string().optional(),
     // OpenAI for agent chat
     OPENAI_API_KEY: z.string().optional(),
+    GEMINI_API_KEY: z.string().optional(),
+    OPENAI_CHAT_MODEL: z.string().optional(),
+    GEMINI_CHAT_MODEL: z.string().optional(),
   },
 
   /**
@@ -54,6 +57,9 @@ export const env = createEnv({
     GMAIL_TOPIC_ID: process.env.GMAIL_TOPIC_ID,
     CORSAIR_WEBHOOK_TENANT_ID: process.env.CORSAIR_WEBHOOK_TENANT_ID,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    OPENAI_CHAT_MODEL: process.env.OPENAI_CHAT_MODEL,
+    GEMINI_CHAT_MODEL: process.env.GEMINI_CHAT_MODEL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

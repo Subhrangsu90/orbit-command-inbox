@@ -55,8 +55,14 @@ export function WorkspacePreferencesProvider({
   // Sync server preferences into local state once fetched
   useEffect(() => {
     if (isAuthenticated && serverPreferences) {
-      setLocalPreferences(serverPreferences);
-      saveWorkspacePreferences(serverPreferences);
+      setLocalPreferences((prev) => {
+        const merged = {
+          ...prev,
+          ...serverPreferences,
+        };
+        saveWorkspacePreferences(merged);
+        return merged;
+      });
     }
   }, [isAuthenticated, serverPreferences]);
 

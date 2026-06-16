@@ -40,7 +40,7 @@ export function LabelsDialog({
 
   return (
     <div className="animate-fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <Card className="bg-surface-container border-outline-variant relative w-full max-w-md space-y-4 rounded-3xl border p-6 shadow-2xl">
+      <Card className="bg-surface-container border-outline-variant relative w-full max-w-[28rem] space-y-4 rounded-3xl border p-6 shadow-2xl">
         <button
           type="button"
           onClick={onClose}

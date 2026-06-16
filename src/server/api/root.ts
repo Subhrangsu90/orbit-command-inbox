@@ -4,6 +4,7 @@ import { corsairRouter } from "~/server/api/routers/corsair";
 import { integrationsRouter } from "~/server/api/routers/integrations";
 import { emailsRouter } from "~/server/api/routers/emails";
 import { calendarRouter } from "~/server/api/routers/calendar";
+import { agentRouter } from "~/server/api/routers/agent";
 
 /**
  * This is the primary router for your server.
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
   integrations: integrationsRouter,
   emails: emailsRouter,
   calendar: calendarRouter,
+  agent: agentRouter,
 });
 
 // export type definition of API

@@ -1,5 +1,9 @@
 import type { MessagePart } from "@corsair-dev/gmail";
 import { corsair, ensureCorsairConfigured } from "~/server/corsair";
+import { db } from "~/server/db";
+import { emailPriorities } from "~/server/db/schema/priorities";
+import { eq, inArray } from "drizzle-orm";
+import { classifyAndStorePriority } from "./priority";
 
 type GmailHeader = { name?: string; value?: string };
 
@@ -299,10 +303,41 @@ export const emailsService = {
         }),
       );
 
+      const filteredMessages = messages.filter(
+        (message): message is NonNullable<typeof message> => message !== null,
+      );
+
+      const messageIds = filteredMessages.map((m) => m.id);
+      const prioritiesMap: Record<string, { priority: "high" | "medium" | "low"; reason: string }> = {};
+
+      if (messageIds.length > 0) {
+        const priorities = await db
+          .select()
+          .from(emailPriorities)
+          .where(inArray(emailPriorities.emailId, messageIds));
+        
+        for (const p of priorities) {
+          prioritiesMap[p.emailId] = {
+            priority: p.priority as "high" | "medium" | "low",
+            reason: p.reason ?? "",
+          };
+        }
+      }
+
+      const enrichedMessages = filteredMessages.map((m) => {
+        const cached = prioritiesMap[m.id];
+        if (!cached) {
+          void classifyAndStorePriority(m.id, m.subject, m.snippet);
+        }
+        return {
+          ...m,
+          priority: cached?.priority ?? "medium",
+          priorityReason: cached?.reason ?? "Pending classification...",
+        };
+      });
+
       return {
-        messages: messages.filter(
-          (message): message is NonNullable<typeof message> => message !== null,
-        ),
+        messages: enrichedMessages,
         nextPageToken: listResult.nextPageToken,
       };
     } catch (error) {
@@ -322,7 +357,26 @@ export const emailsService = {
         id: input.id,
         format: "full",
       });
-      return normalizeMessage(detail, input.id);
+      const normalized = normalizeMessage(detail, input.id);
+
+      const [priorityRow] = await db
+        .select()
+        .from(emailPriorities)
+        .where(eq(emailPriorities.emailId, input.id))
+        .limit(1);
+
+      let priority = priorityRow?.priority;
+      let reason = priorityRow?.reason;
+
+      if (!priorityRow) {
+        void classifyAndStorePriority(normalized.id, normalized.subject, normalized.snippet);
+      }
+
+      return {
+        ...normalized,
+        priority: (priority ?? "medium") as "high" | "medium" | "low",
+        priorityReason: reason ?? "Pending classification...",
+      };
     } catch (error) {
       console.error("Error fetching Gmail message:", error);
       throw new Error("Failed to fetch the email.");
