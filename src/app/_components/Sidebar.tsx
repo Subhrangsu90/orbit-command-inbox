@@ -19,7 +19,6 @@ type SidebarProps = {
 
 export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
   const [isBrandHovered, setIsBrandHovered] = useState(false);
-  const [isRecentsExpanded, setIsRecentsExpanded] = useState(true);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -178,7 +177,7 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
           <div className="flex-grow overflow-y-auto px-3 space-y-4">
             {/* AGENT TAB */}
             {activeTab === "agent" && (
-              <div className="space-y-4">
+              <div className="flex h-full min-h-0 flex-col gap-4">
                 {/* New Chat Button */}
                 <button
                   type="button"
@@ -189,46 +188,32 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
                   New Chat
                 </button>
 
-                {/* Recents list */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between px-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsRecentsExpanded(!isRecentsExpanded)}
-                      className="flex items-center gap-1 text-[10px] text-on-surface-variant/50 font-bold uppercase tracking-wider hover:text-on-surface transition"
-                    >
-                      <span className="material-symbols-outlined text-xs font-bold">
-                        {isRecentsExpanded ? "expand_more" : "chevron_right"}
-                      </span>
-                      Recent Chats
-                    </button>
-                  </div>
-                  {isRecentsExpanded && (
-                    <div className="space-y-1">
-                      {rooms.length === 0 ? (
-                        <p className="text-[10px] text-on-surface-variant/40 italic px-2 py-1">No recent chats</p>
-                      ) : (
-                        rooms.slice(0, 5).map((room) => {
-                          const isRoomActive =
-                            pathname === "/chat" &&
-                            searchParams.get("roomId") === room.id;
-                          return (
-                            <Link
-                              key={room.id}
-                              href={`/chat?roomId=${room.id}`}
-                              className={`block truncate px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                                isRoomActive
-                                  ? "bg-secondary-container/50 text-primary font-semibold"
-                                  : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                              }`}
-                              title={room.title}
-                            >
-                              {room.title}
-                            </Link>
-                          );
-                        })
-                      )}
-                    </div>
+                {/* Chat list */}
+                <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+                  {rooms.length === 0 ? (
+                    <p className="px-2 py-1 text-[10px] italic text-on-surface-variant/40">
+                      No chats yet
+                    </p>
+                  ) : (
+                    rooms.map((room) => {
+                      const isRoomActive =
+                        pathname === "/chat" &&
+                        searchParams.get("roomId") === room.id;
+                      return (
+                        <Link
+                          key={room.id}
+                          href={`/chat?roomId=${room.id}`}
+                          className={`block truncate rounded-lg px-3 py-1.5 text-xs transition-colors ${
+                            isRoomActive
+                              ? "bg-secondary-container/50 font-semibold text-primary"
+                              : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                          }`}
+                          title={room.title}
+                        >
+                          {room.title}
+                        </Link>
+                      );
+                    })
                   )}
                 </div>
               </div>

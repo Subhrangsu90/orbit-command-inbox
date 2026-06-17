@@ -11,10 +11,46 @@ const messageSchema = z.object({
 });
 
 const actionUnion = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("send_email"), to: z.string(), subject: z.string(), success: z.boolean() }),
-  z.object({ type: z.literal("reply_to_email"), id: z.string(), success: z.boolean() }),
-  z.object({ type: z.literal("create_calendar_event"), summary: z.string(), startTime: z.string(), success: z.boolean() }),
-  z.object({ type: z.literal("search_emails"), query: z.string(), count: z.number() }),
+  z.object({
+    type: z.literal("send_email"),
+    to: z.string(),
+    subject: z.string(),
+    body: z.string().optional(),
+    success: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("create_email_draft"),
+    to: z.string(),
+    subject: z.string(),
+    body: z.string(),
+    draftId: z.string(),
+    messageId: z.string().optional(),
+    mailLink: z.string().optional(),
+    success: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("reply_to_email"),
+    id: z.string(),
+    success: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("create_calendar_event"),
+    eventId: z.string().optional(),
+    calendarLink: z.string().optional(),
+    meetingLink: z.string().optional(),
+    summary: z.string(),
+    startTime: z.string(),
+    endTime: z.string(),
+    description: z.string().optional(),
+    location: z.string().optional(),
+    attendees: z.array(z.string()).optional(),
+    success: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("search_emails"),
+    query: z.string(),
+    count: z.number(),
+  }),
   z.object({ type: z.literal("list_events"), count: z.number() }),
 ]);
 
@@ -35,29 +71,29 @@ export const agentRouter = createTRPCRouter({
         path: "/agent/chat",
         tags: TAGS,
         summary: "Chat with Orbit Agent (Stateless)",
-        description: "Sends message thread to Orbit Agent to trigger actions on email or calendar.",
+        description:
+          "Sends message thread to Orbit Agent to trigger actions on email or calendar.",
       },
     })
     .input(
       z.object({
         messages: z.array(messageSchema),
-      })
+      }),
     )
     .output(
       z.object({
         response: z.string(),
         actions: z.array(actionUnion),
         messages: z.array(messageSchema),
-      })
+      }),
     )
     .mutation(({ ctx, input }) => {
       return agentService.chat(ctx.session.user.id, input);
     }),
 
-  listRooms: protectedProcedure
-    .query(({ ctx }) => {
-      return roomsService.listRooms(ctx.session.user.id);
-    }),
+  listRooms: protectedProcedure.query(({ ctx }) => {
+    return roomsService.listRooms(ctx.session.user.id);
+  }),
 
   getRoomHistory: protectedProcedure
     .input(z.object({ roomId: z.string() }))
@@ -80,7 +116,11 @@ export const agentRouter = createTRPCRouter({
   renameRoom: protectedProcedure
     .input(z.object({ roomId: z.string(), title: z.string() }))
     .mutation(({ ctx, input }) => {
-      return roomsService.renameRoom(input.roomId, ctx.session.user.id, input.title);
+      return roomsService.renameRoom(
+        input.roomId,
+        ctx.session.user.id,
+        input.title,
+      );
     }),
 
   chatInRoom: protectedProcedure
@@ -90,9 +130,13 @@ export const agentRouter = createTRPCRouter({
         response: z.string(),
         actions: z.array(actionUnion),
         messages: z.array(chatMessageOutputSchema),
-      })
+      }),
     )
     .mutation(({ ctx, input }) => {
-      return roomsService.chatInRoom(input.roomId, ctx.session.user.id, input.content);
+      return roomsService.chatInRoom(
+        input.roomId,
+        ctx.session.user.id,
+        input.content,
+      );
     }),
 });

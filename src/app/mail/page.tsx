@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, Suspense } from "react";
+import { useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -30,7 +30,6 @@ import { useWorkspacePreferences } from "~/app/_components/workspacePreferencesC
 import { api } from "~/trpc/react";
 import { Button } from "~/app/_components/ui/button";
 import { EmailListItem } from "~/app/_components/email/EmailListItem";
-import { EmailDetailDialog } from "~/app/_components/email/EmailDetailDialog";
 import { ComposeEmailDialog } from "~/app/_components/email/ComposeEmailDialog";
 import { LabelsDialog } from "~/app/_components/email/LabelsDialog";
 import { CalendarAgendaSidebar } from "~/app/_components/calendar/CalendarAgendaSidebar";
@@ -49,10 +48,10 @@ export default function MailPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex h-screen items-center justify-center bg-background">
+        <div className="bg-background flex h-screen items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="border-primary size-8 animate-spin rounded-full border-2 border-t-transparent" />
-            <p className="text-on-surface-variant text-xs font-semibold animate-pulse">
+            <p className="text-on-surface-variant animate-pulse text-xs font-semibold">
               Loading workspace...
             </p>
           </div>
@@ -67,6 +66,7 @@ export default function MailPage() {
 function MailboxHome() {
   const { preferences } = useWorkspacePreferences();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const requestedMailbox = searchParams.get("mailbox") ?? "inbox";
   const mailbox = ["inbox", "starred", "sent", "drafts"].includes(
     requestedMailbox,
@@ -127,9 +127,10 @@ function MailboxHome() {
     setComposeSubject,
     setComposeBody,
   } = useMailStore();
-  const manuallyMarkedUnreadRef = useRef<Set<string>>(new Set());
   const searchSource = searchQuery.trim()
-    ? (searchQuery.includes(":") || mailbox === "drafts" ? ("gmail" as const) : ("semantic" as const))
+    ? searchQuery.includes(":") || mailbox === "drafts"
+      ? ("gmail" as const)
+      : ("semantic" as const)
     : ("gmail" as const);
 
   function compileSearchQuery() {
@@ -156,7 +157,6 @@ function MailboxHome() {
     setSelectedIndex(0);
     setSelectedEmailId(null);
     setSelectedMessageIds([]);
-    manuallyMarkedUnreadRef.current.clear();
   }, [category, searchQuery, mailbox]);
 
   // Emails query
@@ -238,12 +238,21 @@ function MailboxHome() {
     };
   });
 
-  const emails =
-    mailbox === "drafts"
-      ? (draftsData?.drafts ?? [])
-      : searchSource === "semantic"
-        ? (semanticSearchData?.messages ?? [])
-        : (emailsData?.messages ?? []);
+  const emails = (() => {
+    const source =
+      mailbox === "drafts"
+        ? (draftsData?.drafts ?? [])
+        : searchSource === "semantic"
+          ? (semanticSearchData?.messages ?? [])
+          : (emailsData?.messages ?? []);
+    const seen = new Set<string>();
+
+    return source.filter((email: any) => {
+      if (!email?.id || seen.has(email.id)) return false;
+      seen.add(email.id);
+      return true;
+    });
+  })();
   const isLoadingMailbox =
     mailbox === "drafts"
       ? isLoadingDrafts
@@ -251,17 +260,6 @@ function MailboxHome() {
         ? isLoadingSemanticSearch
         : isLoadingEmails;
   const isGmailConnected = isConnected && !emailsData?.notConnected;
-  const selectedEmail = emails.find((email: any) => email.id === selectedEmailId);
-
-  const { data: emailDetail, isLoading: isLoadingEmailDetail } =
-    api.emails.get.useQuery(
-      { id: selectedEmailId ?? "" },
-      {
-        enabled:
-          Boolean(selectedEmailId) && isGmailConnected && mailbox !== "drafts",
-      },
-    );
-
   const labelsQuery = api.emails.listLabels.useQuery(undefined, {
     enabled: isGmailConnected,
     retry: false,
@@ -270,31 +268,6 @@ function MailboxHome() {
   });
   const labelsData = labelsQuery.data;
   const refetchLabels = labelsQuery.refetch;
-
-  const { data: threadDetail } = api.emails.getThread.useQuery(
-    {
-      id: selectedEmail?.threadId ?? "",
-      format: "full",
-    },
-    {
-      enabled:
-        mailbox !== "drafts" && Boolean(selectedEmail?.threadId) && isConnected,
-      retry: false,          // don't auto-retry on 429 — the server already handles it
-      retryOnMount: false,
-      staleTime: 30_000,     // re-use cached thread for 30 s before refetching
-    },
-  );
-
-  // Deduplicate thread messages by id (client-side safety net for the React key warning)
-  const threadMessages = (() => {
-    const msgs = threadDetail?.messages ?? [];
-    const seen = new Set<string>();
-    return msgs.filter((m: any) => {
-      if (!m.id || seen.has(m.id)) return false;
-      seen.add(m.id as string);
-      return true;
-    });
-  })();
 
   // SSE Webhook real-time notification integration
   useEffect(() => {
@@ -440,39 +413,17 @@ function MailboxHome() {
     return null;
   }
 
-  function getMessageBody(value: unknown, fallback: string) {
-    if (
-      typeof value === "object" &&
-      value !== null &&
-      "body" in value &&
-      typeof value.body === "string"
-    ) {
-      return value.body;
-    }
-    return fallback;
+  function getEmailDetailHref(email: any) {
+    const params = new URLSearchParams({ mailbox });
+    const draftId = getDraftId(email);
+    if (mailbox === "drafts" && draftId) params.set("draftId", draftId);
+    return `/mail/${encodeURIComponent(email.id)}?${params.toString()}`;
   }
 
-  function openDraftEditor(draft: any) {
-    setEditingDraftId(getDraftId(draft));
-    setComposeTo(draft.recipientEmail || draft.to);
-    setComposeSubject(draft.subject === "(No subject)" ? "" : draft.subject);
-    setComposeBody(
-      "body" in draft && typeof draft.body === "string"
-        ? draft.body
-        : draft.snippet,
-    );
-    setIsComposeOpen(true);
+  function openEmailDetail(email: any) {
+    setSelectedEmailId(email.id ?? null);
+    router.push(getEmailDetailHref(email));
   }
-
-  // Auto-mark as read when opening
-  useEffect(() => {
-    if (!emailDetail?.isUnread || modifyLabelsMutation.isPending) return;
-    if (manuallyMarkedUnreadRef.current.has(emailDetail.id)) return;
-    modifyLabelsMutation.mutate({
-      id: emailDetail.id,
-      removeLabelIds: ["UNREAD"],
-    });
-  }, [emailDetail?.id, emailDetail?.isUnread]);
 
   // Pagination
   const nextPageToken =
@@ -514,18 +465,18 @@ function MailboxHome() {
       const hasCtrl = parts.includes("ctrl");
       const hasAlt = parts.includes("alt");
       const hasShift = parts.includes("shift");
-      
+
       const mainKey = parts.find((p) => !["ctrl", "alt", "shift"].includes(p));
       if (!mainKey) return false;
-      
+
       const eventCtrl = e.ctrlKey || e.metaKey;
       const eventAlt = e.altKey;
       const eventShift = e.shiftKey;
-      
+
       if (eventCtrl !== hasCtrl) return false;
       if (eventAlt !== hasAlt) return false;
       if (eventShift !== hasShift) return false;
-      
+
       const eventKey = e.key.toLowerCase();
       if (mainKey === "enter" && eventKey === "enter") return true;
       if (mainKey === "escape" && eventKey === "escape") return true;
@@ -534,7 +485,7 @@ function MailboxHome() {
       if (mainKey === "arrowup" && eventKey === "arrowup") return true;
       if (mainKey === "arrowleft" && eventKey === "arrowleft") return true;
       if (mainKey === "arrowright" && eventKey === "arrowright") return true;
-      
+
       return eventKey === mainKey;
     }
 
@@ -545,15 +496,6 @@ function MailboxHome() {
       ) {
         if (e.key === "Escape") {
           (document.activeElement as HTMLElement).blur();
-        }
-        return;
-      }
-
-      // If details view is open, only allow Escape
-      if (selectedEmailId) {
-        if (e.key === "Escape") {
-          e.preventDefault();
-          setSelectedEmailId(null);
         }
         return;
       }
@@ -578,7 +520,7 @@ function MailboxHome() {
       } else if (matchShortcut(e, preferences.shortcutReadEmail || "o")) {
         e.preventDefault();
         if (emails[selectedIndex]) {
-          setSelectedEmailId(emails[selectedIndex].id ?? null);
+          openEmailDetail(emails[selectedIndex]);
         }
       } else if (matchShortcut(e, preferences.shortcutTrashEmail || "e")) {
         e.preventDefault();
@@ -612,7 +554,9 @@ function MailboxHome() {
         setIsHelpOpen((prev) => !prev);
       } else if (e.key === "/") {
         e.preventDefault();
-        const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement | null;
+        const searchInput = document.querySelector(
+          'input[placeholder*="Search"]',
+        ) as HTMLInputElement | null;
         searchInput?.focus();
         searchInput?.select();
       }
@@ -623,7 +567,6 @@ function MailboxHome() {
   }, [
     isGmailConnected,
     isComposeOpen,
-    selectedEmailId,
     isHelpOpen,
     emails,
     selectedIndex,
@@ -647,399 +590,425 @@ function MailboxHome() {
 
   return (
     <WorkspaceLayout wide>
-      <div className="mx-auto max-w-[1600px] space-y-6">
-        {/* Top Header & Global Actions */}
-        <div className="border-outline-variant flex flex-col justify-between gap-4 border-b pb-4 md:flex-row md:items-center">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-xl border border-primary/20 shadow-sm animate-fade-in">
-              <HeaderIcon className="size-5 text-primary" />
-            </div>
-            <div>
-              <h2 className="text-on-surface font-serif text-xl font-bold tracking-tight capitalize">
-                {mailboxDisplayName(mailbox)}
-              </h2>
-              <p className="text-on-surface-variant/85 text-xs">
-                {mailbox === "inbox" 
-                  ? "Track priority conversations, sync state, and organize your inbox."
-                  : mailbox === "starred" 
-                  ? "Access your flagged and important conversations."
-                  : mailbox === "sent"
-                  ? "View your outgoing messages and delivery records."
-                  : "View and edit your draft communications."}
-              </p>
-            </div>
-          </div>
- 
-          {isGmailConnected && (
+      <div
+        className={`mx-auto max-w-[1600px] ${
+          isGmailConnected
+            ? "grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]"
+            : "space-y-6"
+        }`}
+      >
+        <div
+          className={
+            isGmailConnected
+              ? "min-w-0 space-y-6 xl:mx-auto xl:w-full xl:max-w-[58rem]"
+              : "space-y-6"
+          }
+        >
+          {/* Top Header & Global Actions */}
+          <div className="border-outline-variant flex flex-col justify-between gap-4 border-b pb-4 md:flex-row md:items-center">
             <div className="flex items-center gap-3">
-              {/* Pagination controls */}
-              <div className="flex items-center gap-1 bg-surface-container rounded-lg border border-outline-variant p-0.5">
+              <div className="bg-primary/10 text-primary border-primary/20 animate-fade-in flex size-10 items-center justify-center rounded-xl border shadow-sm">
+                <HeaderIcon className="text-primary size-5" />
+              </div>
+              <div>
+                <h2 className="text-on-surface font-serif text-xl font-bold tracking-tight capitalize">
+                  {mailboxDisplayName(mailbox)}
+                </h2>
+                <p className="text-on-surface-variant/85 text-xs">
+                  {mailbox === "inbox"
+                    ? "Track priority conversations, sync state, and organize your inbox."
+                    : mailbox === "starred"
+                      ? "Access your flagged and important conversations."
+                      : mailbox === "sent"
+                        ? "View your outgoing messages and delivery records."
+                        : "View and edit your draft communications."}
+                </p>
+              </div>
+            </div>
+
+            {isGmailConnected && (
+              <div className="flex items-center gap-3">
+                {/* Pagination controls */}
+                <div className="bg-surface-container border-outline-variant flex items-center gap-1 rounded-lg border p-0.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!hasPrevPage}
+                    onClick={handlePrevPage}
+                    className="hover:bg-surface-container-high h-7 w-7 rounded-md border-transparent !p-0 disabled:opacity-40"
+                  >
+                    <ChevronLeft className="size-3.5" />
+                  </Button>
+                  <span className="text-on-surface-variant/80 px-1 text-[10px] font-bold">
+                    Page {pageTokenHistory.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!hasNextPage}
+                    onClick={handleNextPage}
+                    className="hover:bg-surface-container-high h-7 w-7 rounded-md border-transparent !p-0 disabled:opacity-40"
+                  >
+                    <ChevronRight className="size-3.5" />
+                  </Button>
+                </div>
+
+                {/* Labels Button */}
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={!hasPrevPage}
-                  onClick={handlePrevPage}
-                  className="border-transparent h-7 w-7 rounded-md !p-0 disabled:opacity-40 hover:bg-surface-container-high"
+                  onClick={() => setIsLabelsOpen(true)}
+                  className="border-outline-variant hover:bg-surface-container-low h-8 rounded-lg border px-3 text-xs"
                 >
-                  <ChevronLeft className="size-3.5" />
-                </Button>
-                <span className="text-on-surface-variant/80 px-1 text-[10px] font-bold">
-                  Page {pageTokenHistory.length}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!hasNextPage}
-                  onClick={handleNextPage}
-                  className="border-transparent h-7 w-7 rounded-md !p-0 disabled:opacity-40 hover:bg-surface-container-high"
-                >
-                  <ChevronRight className="size-3.5" />
+                  <Tag className="mr-1.5 size-3.5" /> Labels
                 </Button>
               </div>
- 
-              {/* Labels Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsLabelsOpen(true)}
-                className="border-outline-variant hover:bg-surface-container-low h-8 rounded-lg border px-3 text-xs"
-              >
-                <Tag className="mr-1.5 size-3.5" /> Labels
-              </Button>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Connection Status */}
-        {isLoadingConnections ? (
-          <div className="border-outline-variant bg-surface-container-lowest flex h-48 items-center justify-center rounded-2xl border">
-            <div className="flex flex-col items-center gap-2">
-              <div className="border-primary size-8 animate-spin rounded-full border-2 border-t-transparent" />
-              <p className="text-on-surface-variant text-xs">
-                Checking connection...
+          {/* Connection Status */}
+          {isLoadingConnections ? (
+            <div className="border-outline-variant bg-surface-container-lowest flex h-48 items-center justify-center rounded-2xl border">
+              <div className="flex flex-col items-center gap-2">
+                <div className="border-primary size-8 animate-spin rounded-full border-2 border-t-transparent" />
+                <p className="text-on-surface-variant text-xs">
+                  Checking connection...
+                </p>
+              </div>
+            </div>
+          ) : !isGmailConnected ? (
+            <div className="border-outline-variant bg-surface-container-lowest mx-auto flex max-w-[28rem] flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
+              <div className="relative mb-4">
+                <Mail className="text-on-surface-variant size-12 opacity-60" />
+                <span className="bg-surface-container-lowest absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full">
+                  <AlertCircle className="text-warning size-4" />
+                </span>
+              </div>
+              <p className="text-on-surface text-sm font-semibold">
+                Gmail disconnected
               </p>
+              <p className="text-on-surface-variant mt-1 max-w-[24rem] text-xs">
+                Please go to settings page to connect your Gmail account to
+                manage your inbox.
+              </p>
+              <Link
+                href="/settings"
+                className="bg-primary text-on-primary hover:bg-primary-container mt-4 inline-flex rounded-xl px-5 py-2.5 text-xs font-semibold shadow-sm transition hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Go to Settings
+              </Link>
             </div>
-          </div>
-        ) : !isGmailConnected ? (
-          <div className="border-outline-variant bg-surface-container-lowest mx-auto flex max-w-[28rem] flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
-            <div className="relative mb-4">
-              <Mail className="text-on-surface-variant size-12 opacity-60" />
-              <span className="bg-surface-container-lowest absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full">
-                <AlertCircle className="text-warning size-4" />
-              </span>
-            </div>
-            <p className="text-on-surface text-sm font-semibold">
-              Gmail disconnected
-            </p>
-            <p className="text-on-surface-variant mt-1 max-w-[24rem] text-xs">
-              Please go to settings page to connect your Gmail account to manage
-              your inbox.
-            </p>
-            <Link
-              href="/settings"
-              className="bg-primary text-on-primary hover:bg-primary-container mt-4 inline-flex rounded-xl px-5 py-2.5 text-xs font-semibold shadow-sm transition hover:scale-[1.02] active:scale-[0.98]"
-            >
-              Go to Settings
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Search Input */}
-            <div className="flex flex-col gap-2">
-              <div className="relative flex-1">
-                <Search className="text-on-surface-variant absolute top-1/2 left-3.5 size-4 -translate-y-1/2 opacity-60" />
-                <input
-                  type="text"
-                  placeholder="Search mail (uses semantic search automatically)…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="border-outline-variant bg-surface-container-lowest text-on-surface focus:ring-primary focus:border-primary w-full rounded-xl border py-2.5 pr-24 pl-10 text-sm transition focus:ring-1 focus:outline-none"
-                />
-                {/* Inline controls on the right side of search input */}
-                {mailbox !== "drafts" && (
-                  <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setIsAdvancedSearchOpen((prev) => !prev)}
-                      className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition ${
-                        isAdvancedSearchOpen
-                          ? "bg-primary/15 text-primary"
-                          : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                      }`}
-                      title="Advanced Filters"
-                    >
-                      Filters
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Advanced Filters Panel */}
-            {isAdvancedSearchOpen && searchSource === "gmail" && (
-              <div className="bg-surface-container-low border border-outline-variant p-4 rounded-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 shadow-lg animate-fade-in">
-                <div className="space-y-1">
-                  <label className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wide">From</label>
+          ) : (
+            <div className="space-y-4">
+              {/* Search Input */}
+              <div className="flex flex-col gap-2">
+                <div className="relative flex-1">
+                  <Search className="text-on-surface-variant absolute top-1/2 left-3.5 size-4 -translate-y-1/2 opacity-60" />
                   <input
                     type="text"
-                    value={filterFrom}
-                    onChange={(e) => setFilterFrom(e.target.value)}
-                    placeholder="sender@example.com"
-                    className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Search mail (uses semantic search automatically)…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="border-outline-variant bg-surface-container-lowest text-on-surface focus:ring-primary focus:border-primary w-full rounded-xl border py-2.5 pr-24 pl-10 text-sm transition focus:ring-1 focus:outline-none"
                   />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wide">To</label>
-                  <input
-                    type="text"
-                    value={filterTo}
-                    onChange={(e) => setFilterTo(e.target.value)}
-                    placeholder="recipient@example.com"
-                    className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wide">Subject</label>
-                  <input
-                    type="text"
-                    value={filterSubject}
-                    onChange={(e) => setFilterSubject(e.target.value)}
-                    placeholder="Subject keywords"
-                    className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wide">Date Range</label>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="date"
-                      value={filterAfter}
-                      onChange={(e) => setFilterAfter(e.target.value)}
-                      className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant rounded-xl px-2 py-1 text-[10px] outline-none focus:ring-1 focus:ring-primary"
-                    />
-                    <span className="text-[10px] text-on-surface-variant">to</span>
-                    <input
-                      type="date"
-                      value={filterBefore}
-                      onChange={(e) => setFilterBefore(e.target.value)}
-                      className="w-full bg-surface-container-lowest text-on-surface border border-outline-variant rounded-xl px-2 py-1 text-[10px] outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
-                <div className="md:col-span-2 lg:col-span-4 flex items-center justify-between flex-wrap gap-4 pt-2 border-t border-outline-variant/60">
-                  <div className="flex gap-4 items-center flex-wrap">
-                    <label className="flex items-center gap-2 text-xs text-on-surface select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filterHasAttachment}
-                        onChange={(e) => setFilterHasAttachment(e.target.checked)}
-                        className="rounded border-outline-variant text-primary focus:ring-primary/45"
-                      />
-                      Has Attachment
-                    </label>
-                    <label className="flex items-center gap-2 text-xs text-on-surface select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filterIsStarred}
-                        onChange={(e) => setFilterIsStarred(e.target.checked)}
-                        className="rounded border-outline-variant text-primary focus:ring-primary/45"
-                      />
-                      Starred
-                    </label>
-                    <label className="flex items-center gap-2 text-xs text-on-surface select-none cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filterIsUnread}
-                        onChange={(e) => setFilterIsUnread(e.target.checked)}
-                        className="rounded border-outline-variant text-primary focus:ring-primary/45"
-                      />
-                      Unread
-                    </label>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setFilterFrom("");
-                        setFilterTo("");
-                        setFilterSubject("");
-                        setFilterHasAttachment(false);
-                        setFilterIsStarred(false);
-                        setFilterIsUnread(false);
-                        setFilterAfter("");
-                        setFilterBefore("");
-                        setSearchQuery("");
-                      }}
-                      className="h-8 text-2xs rounded-lg font-semibold"
-                    >
-                      Clear
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => {
-                        const q = compileSearchQuery();
-                        setSearchQuery(q);
-                        setIsAdvancedSearchOpen(false);
-                      }}
-                      className="h-8 text-2xs rounded-lg font-semibold bg-primary text-on-primary"
-                    >
-                      Apply Filters
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Category Tabs */}
-            {mailbox === "inbox" && (
-              <div className="border-outline-variant/60 flex gap-1 overflow-x-auto border-b select-none">
-                {CATEGORIES.map((cat) => {
-                  const isActive = category === cat.id;
-                  const CatIcon = cat.icon;
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => setCategory(cat.id)}
-                      className={`flex items-center gap-2 border-b-2 px-5 py-3 text-xs font-semibold whitespace-nowrap transition-all duration-150 ${
-                        isActive
-                          ? "border-primary text-primary bg-primary/5"
-                          : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low/50 border-transparent"
-                      }`}
-                    >
-                      <CatIcon className="size-4" />
-                      {cat.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Offline / Cache Banner */}
-            {emailsData?.fromCache && (
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium animate-fade-in">
-                <Database className="size-3.5 shrink-0" />
-                <span>
-                  <strong>Showing cached data.</strong> Google API is currently unreachable — displaying your last synced emails. Changes may not reflect.
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void emailsQuery.refetch()}
-                  className="ml-auto shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 font-semibold transition-colors text-[11px]"
-                >
-                  <RefreshCw className="size-3" />
-                  Retry
-                </button>
-              </div>
-            )}
-
-            {/* Batch Actions Bar */}
-            {emails.length > 0 && mailbox !== "drafts" && (
-              <div className="border-outline-variant bg-surface-container-lowest flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSelectedMessageIds(
-                      selectedMessageIds.length === emails.length
-                        ? []
-                        : emails.map((email: any) => email.id),
-                    )
-                  }
-                  className="text-on-surface-variant hover:text-on-surface flex items-center gap-1.5 text-xs font-semibold"
-                >
-                  {selectedMessageIds.length === emails.length ? (
-                    <CheckSquare2 className="size-4" />
-                  ) : (
-                    <Square className="size-4" />
+                  {/* Inline controls on the right side of search input */}
+                  {mailbox !== "drafts" && (
+                    <div className="absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsAdvancedSearchOpen((prev) => !prev)}
+                        className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wide uppercase transition ${
+                          isAdvancedSearchOpen
+                            ? "bg-primary/15 text-primary"
+                            : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                        }`}
+                        title="Advanced Filters"
+                      >
+                        Filters
+                      </button>
+                    </div>
                   )}
-                  {selectedMessageIds.length
-                    ? `${selectedMessageIds.length} selected`
-                    : "Select all"}
-                </button>
-
-                {selectedMessageIds.length > 0 && (
-                  <>
-                    <span className="bg-outline-variant h-5 w-px" />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        batchModifyMutation.mutate({
-                          ids: selectedMessageIds,
-                          removeLabelIds: ["UNREAD"],
-                        })
-                      }
-                      className="text-on-surface-variant hover:text-on-surface text-xs font-semibold"
-                    >
-                      Mark read
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        batchModifyMutation.mutate({
-                          ids: selectedMessageIds,
-                          addLabelIds: ["UNREAD"],
-                        })
-                      }
-                      className="text-on-surface-variant hover:text-on-surface text-xs font-semibold"
-                    >
-                      Unread
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        batchModifyMutation.mutate({
-                          ids: selectedMessageIds,
-                          addLabelIds: ["STARRED"],
-                        })
-                      }
-                      className="text-on-surface-variant hover:text-on-surface flex items-center gap-1 text-xs font-semibold"
-                    >
-                      <Star className="size-3.5" /> Star
-                    </button>
-                    <select
-                      defaultValue=""
-                      aria-label="Apply Gmail label"
-                      onChange={(event) => {
-                        if (!event.target.value) return;
-                        batchModifyMutation.mutate({
-                          ids: selectedMessageIds,
-                          addLabelIds: [event.target.value],
-                        });
-                        event.target.value = "";
-                      }}
-                      className="border-outline-variant bg-surface-container-low text-on-surface rounded-lg border px-2 py-1 text-xs"
-                    >
-                      <option value="">Apply label...</option>
-                      {(labelsData?.labels ?? [])
-                        .filter((label) => label.type === "user")
-                        .map((label) => (
-                          <option key={label.id} value={label.id}>
-                            {label.name}
-                          </option>
-                        ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        batchModifyMutation.mutate({
-                          ids: selectedMessageIds,
-                          addLabelIds: ["TRASH"],
-                        })
-                      }
-                      className="text-error ml-auto flex items-center gap-1 text-xs font-semibold"
-                    >
-                      <Trash2 className="size-3.5" /> Trash
-                    </button>
-                  </>
-                )}
+                </div>
               </div>
-            )}
 
-            {/* Main Email List + Calendar Sidebar */}
-            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-              <div className="lg:col-span-9 space-y-2">
+              {/* Advanced Filters Panel */}
+              {isAdvancedSearchOpen && searchSource === "gmail" && (
+                <div className="bg-surface-container-low border-outline-variant animate-fade-in grid grid-cols-1 gap-4 rounded-2xl border p-4 shadow-lg md:grid-cols-2 lg:grid-cols-4">
+                  <div className="space-y-1">
+                    <label className="text-on-surface-variant text-[10px] font-bold tracking-wide uppercase">
+                      From
+                    </label>
+                    <input
+                      type="text"
+                      value={filterFrom}
+                      onChange={(e) => setFilterFrom(e.target.value)}
+                      placeholder="sender@example.com"
+                      className="bg-surface-container-lowest text-on-surface border-outline-variant focus:ring-primary w-full rounded-xl border px-3 py-1.5 text-xs outline-none focus:ring-1"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-on-surface-variant text-[10px] font-bold tracking-wide uppercase">
+                      To
+                    </label>
+                    <input
+                      type="text"
+                      value={filterTo}
+                      onChange={(e) => setFilterTo(e.target.value)}
+                      placeholder="recipient@example.com"
+                      className="bg-surface-container-lowest text-on-surface border-outline-variant focus:ring-primary w-full rounded-xl border px-3 py-1.5 text-xs outline-none focus:ring-1"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-on-surface-variant text-[10px] font-bold tracking-wide uppercase">
+                      Subject
+                    </label>
+                    <input
+                      type="text"
+                      value={filterSubject}
+                      onChange={(e) => setFilterSubject(e.target.value)}
+                      placeholder="Subject keywords"
+                      className="bg-surface-container-lowest text-on-surface border-outline-variant focus:ring-primary w-full rounded-xl border px-3 py-1.5 text-xs outline-none focus:ring-1"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-on-surface-variant text-[10px] font-bold tracking-wide uppercase">
+                      Date Range
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={filterAfter}
+                        onChange={(e) => setFilterAfter(e.target.value)}
+                        className="bg-surface-container-lowest text-on-surface border-outline-variant focus:ring-primary w-full rounded-xl border px-2 py-1 text-[10px] outline-none focus:ring-1"
+                      />
+                      <span className="text-on-surface-variant text-[10px]">
+                        to
+                      </span>
+                      <input
+                        type="date"
+                        value={filterBefore}
+                        onChange={(e) => setFilterBefore(e.target.value)}
+                        className="bg-surface-container-lowest text-on-surface border-outline-variant focus:ring-primary w-full rounded-xl border px-2 py-1 text-[10px] outline-none focus:ring-1"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-outline-variant/60 flex flex-wrap items-center justify-between gap-4 border-t pt-2 md:col-span-2 lg:col-span-4">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className="text-on-surface flex cursor-pointer items-center gap-2 text-xs select-none">
+                        <input
+                          type="checkbox"
+                          checked={filterHasAttachment}
+                          onChange={(e) =>
+                            setFilterHasAttachment(e.target.checked)
+                          }
+                          className="border-outline-variant text-primary focus:ring-primary/45 rounded"
+                        />
+                        Has Attachment
+                      </label>
+                      <label className="text-on-surface flex cursor-pointer items-center gap-2 text-xs select-none">
+                        <input
+                          type="checkbox"
+                          checked={filterIsStarred}
+                          onChange={(e) => setFilterIsStarred(e.target.checked)}
+                          className="border-outline-variant text-primary focus:ring-primary/45 rounded"
+                        />
+                        Starred
+                      </label>
+                      <label className="text-on-surface flex cursor-pointer items-center gap-2 text-xs select-none">
+                        <input
+                          type="checkbox"
+                          checked={filterIsUnread}
+                          onChange={(e) => setFilterIsUnread(e.target.checked)}
+                          className="border-outline-variant text-primary focus:ring-primary/45 rounded"
+                        />
+                        Unread
+                      </label>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setFilterFrom("");
+                          setFilterTo("");
+                          setFilterSubject("");
+                          setFilterHasAttachment(false);
+                          setFilterIsStarred(false);
+                          setFilterIsUnread(false);
+                          setFilterAfter("");
+                          setFilterBefore("");
+                          setSearchQuery("");
+                        }}
+                        className="text-2xs h-8 rounded-lg font-semibold"
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          const q = compileSearchQuery();
+                          setSearchQuery(q);
+                          setIsAdvancedSearchOpen(false);
+                        }}
+                        className="text-2xs bg-primary text-on-primary h-8 rounded-lg font-semibold"
+                      >
+                        Apply Filters
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Category Tabs */}
+              {mailbox === "inbox" && (
+                <div className="border-outline-variant/60 flex gap-1 overflow-x-auto border-b select-none">
+                  {CATEGORIES.map((cat) => {
+                    const isActive = category === cat.id;
+                    const CatIcon = cat.icon;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setCategory(cat.id)}
+                        className={`flex items-center gap-2 border-b-2 px-5 py-3 text-xs font-semibold whitespace-nowrap transition-all duration-150 ${
+                          isActive
+                            ? "border-primary text-primary bg-primary/5"
+                            : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low/50 border-transparent"
+                        }`}
+                      >
+                        <CatIcon className="size-4" />
+                        {cat.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Offline / Cache Banner */}
+              {emailsData?.fromCache && (
+                <div className="animate-fade-in flex items-center gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                  <Database className="size-3.5 shrink-0" />
+                  <span>
+                    <strong>Showing cached data.</strong> Google API is
+                    currently unreachable — displaying your last synced emails.
+                    Changes may not reflect.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void emailsQuery.refetch()}
+                    className="ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300"
+                  >
+                    <RefreshCw className="size-3" />
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {/* Batch Actions Bar */}
+              {emails.length > 0 && mailbox !== "drafts" && (
+                <div className="border-outline-variant bg-surface-container-lowest flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedMessageIds(
+                        selectedMessageIds.length === emails.length
+                          ? []
+                          : emails.map((email: any) => email.id),
+                      )
+                    }
+                    className="text-on-surface-variant hover:text-on-surface flex items-center gap-1.5 text-xs font-semibold"
+                  >
+                    {selectedMessageIds.length === emails.length ? (
+                      <CheckSquare2 className="size-4" />
+                    ) : (
+                      <Square className="size-4" />
+                    )}
+                    {selectedMessageIds.length
+                      ? `${selectedMessageIds.length} selected`
+                      : "Select all"}
+                  </button>
+
+                  {selectedMessageIds.length > 0 && (
+                    <>
+                      <span className="bg-outline-variant h-5 w-px" />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          batchModifyMutation.mutate({
+                            ids: selectedMessageIds,
+                            removeLabelIds: ["UNREAD"],
+                          })
+                        }
+                        className="text-on-surface-variant hover:text-on-surface text-xs font-semibold"
+                      >
+                        Mark read
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          batchModifyMutation.mutate({
+                            ids: selectedMessageIds,
+                            addLabelIds: ["UNREAD"],
+                          })
+                        }
+                        className="text-on-surface-variant hover:text-on-surface text-xs font-semibold"
+                      >
+                        Unread
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          batchModifyMutation.mutate({
+                            ids: selectedMessageIds,
+                            addLabelIds: ["STARRED"],
+                          })
+                        }
+                        className="text-on-surface-variant hover:text-on-surface flex items-center gap-1 text-xs font-semibold"
+                      >
+                        <Star className="size-3.5" /> Star
+                      </button>
+                      <select
+                        defaultValue=""
+                        aria-label="Apply Gmail label"
+                        onChange={(event) => {
+                          if (!event.target.value) return;
+                          batchModifyMutation.mutate({
+                            ids: selectedMessageIds,
+                            addLabelIds: [event.target.value],
+                          });
+                          event.target.value = "";
+                        }}
+                        className="border-outline-variant bg-surface-container-low text-on-surface rounded-lg border px-2 py-1 text-xs"
+                      >
+                        <option value="">Apply label...</option>
+                        {(labelsData?.labels ?? [])
+                          .filter((label) => label.type === "user")
+                          .map((label) => (
+                            <option key={label.id} value={label.id}>
+                              {label.name}
+                            </option>
+                          ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          batchModifyMutation.mutate({
+                            ids: selectedMessageIds,
+                            addLabelIds: ["TRASH"],
+                          })
+                        }
+                        className="text-error ml-auto flex items-center gap-1 text-xs font-semibold"
+                      >
+                        <Trash2 className="size-3.5" /> Trash
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Main Email List */}
+              <div className="space-y-2">
                 {isLoadingMailbox ? (
                   <div className="border-outline-variant bg-surface-container-lowest flex h-64 items-center justify-center rounded-2xl border">
                     <div className="flex flex-col items-center gap-2">
@@ -1072,7 +1041,7 @@ function MailboxHome() {
                         isChecked={selectedMessageIds.includes(email.id)}
                         onClick={() => {
                           setSelectedIndex(idx);
-                          setSelectedEmailId(email.id ?? null);
+                          openEmailDetail(email);
                         }}
                         onToggleCheck={() =>
                           setSelectedMessageIds((current) =>
@@ -1084,43 +1053,25 @@ function MailboxHome() {
                         onTrash={() => trashMutation.mutate({ id: email.id })}
                         onDeleteDraft={() => {
                           const draftId = getDraftId(email);
-                          if (draftId) deleteDraftMutation.mutate({ id: draftId });
+                          if (draftId)
+                            deleteDraftMutation.mutate({ id: draftId });
                         }}
                       />
                     ))}
                   </div>
                 )}
               </div>
-
-              <CalendarAgendaSidebar
-                isConnected={Boolean(connections?.googlecalendar)}
-              />
             </div>
-          </div>
+          )}
+        </div>
+
+        {isGmailConnected && (
+          <CalendarAgendaSidebar
+            isConnected={Boolean(connections?.googlecalendar)}
+            className="w-full"
+          />
         )}
       </div>
-
-      {/* Email Detail Dialog */}
-      {selectedEmailId && selectedEmail && (
-        <EmailDetailDialog
-          email={selectedEmail}
-          emailDetail={emailDetail}
-          isLoadingDetail={isLoadingEmailDetail}
-          threadMessages={threadMessages}
-          mailbox={mailbox}
-          onClose={() => setSelectedEmailId(null)}
-          onSelectMessage={(id) => setSelectedEmailId(id)}
-          onReply={(input) => replyMutation.mutate(input)}
-          isReplying={replyMutation.isPending}
-          onTrash={(id) => trashMutation.mutate({ id })}
-          onOpenDraftEditor={openDraftEditor}
-          onDeleteDraft={(id) => deleteDraftMutation.mutate({ id })}
-          onSendDraft={(id) => sendDraftMutation.mutate({ id })}
-          isSendingDraft={sendDraftMutation.isPending}
-          getDraftId={getDraftId}
-          getMessageBody={getMessageBody}
-        />
-      )}
 
       {/* Compose Email Dialog */}
       <ComposeEmailDialog
@@ -1167,8 +1118,8 @@ function MailboxHome() {
             className="bg-surface-container border-outline-variant relative flex max-h-[80vh] w-full max-w-[28rem] flex-col overflow-hidden rounded-3xl border p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3">
-              <h3 className="text-on-surface font-sans text-lg font-bold flex items-center gap-2">
+            <div className="border-outline-variant/60 flex items-center justify-between border-b pb-3">
+              <h3 className="text-on-surface flex items-center gap-2 font-sans text-lg font-bold">
                 <Keyboard className="size-5" /> Keyboard Shortcuts
               </h3>
               <button
@@ -1178,46 +1129,66 @@ function MailboxHome() {
                 <X className="size-5" />
               </button>
             </div>
-            <div className="mt-4 space-y-3 text-xs text-on-surface">
+            <div className="text-on-surface mt-4 space-y-3 text-xs">
               <div className="flex items-center justify-between">
                 <span>Navigate Down</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">J</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  J
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Navigate Up</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">K</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  K
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Open selected email</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">Enter</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  Enter
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Close email detail view / modal</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">Escape</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  Escape
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Trash selected email / delete draft</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">E</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  E
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Star / Unstar selected email</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">S</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  S
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Compose new email</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">C</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  C
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Refresh mailbox</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">R</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  R
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Focus search bar</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">/</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  /
+                </kbd>
               </div>
               <div className="flex items-center justify-between">
                 <span>Toggle this help menu</span>
-                <kbd className="bg-surface-container-high border border-outline-variant px-1.5 py-0.5 rounded shadow-xs font-semibold">?</kbd>
+                <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
+                  ?
+                </kbd>
               </div>
             </div>
           </div>
@@ -1230,7 +1201,7 @@ function MailboxHome() {
             resetCompose();
             setIsComposeOpen(true);
           }}
-          className="fixed bottom-6 right-6 z-50 bg-primary text-on-primary hover:bg-primary-container flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 border border-primary/20"
+          className="bg-primary text-on-primary hover:bg-primary-container border-primary/20 fixed right-6 bottom-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 active:scale-95"
           title="Compose Email"
         >
           <Plus className="size-6" />

@@ -191,12 +191,18 @@ function isRateLimitError(error: unknown) {
   );
 }
 
-async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1000): Promise<T> {
+async function fetchWithRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delayMs = 1000,
+): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
     if (retries > 0 && isRateLimitError(error)) {
-      console.warn(`[Gmail API] Rate limit or quota hit. Retrying in ${delayMs}ms... (Retries left: ${retries})`);
+      console.warn(
+        `[Gmail API] Rate limit or quota hit. Retrying in ${delayMs}ms... (Retries left: ${retries})`,
+      );
       await new Promise((resolve) => setTimeout(resolve, delayMs));
       return fetchWithRetry(fn, retries - 1, delayMs * 2);
     }
@@ -331,7 +337,7 @@ export const emailsService = {
                 client.gmail.api.messages.get({
                   id: message.id!,
                   format: "full",
-                })
+                }),
               );
               const normalized = normalizeMessage(detail, message.id);
               const {
@@ -349,7 +355,7 @@ export const emailsService = {
               );
               return null;
             }
-          })
+          }),
         );
         messages.push(...batchResults);
         if (i + batchSize < msgList.length) {
@@ -362,14 +368,17 @@ export const emailsService = {
       );
 
       const messageIds = filteredMessages.map((m) => m.id);
-      const prioritiesMap: Record<string, { priority: "high" | "medium" | "low"; reason: string }> = {};
+      const prioritiesMap: Record<
+        string,
+        { priority: "high" | "medium" | "low"; reason: string }
+      > = {};
 
       if (messageIds.length > 0) {
         const priorities = await db
           .select()
           .from(emailPriorities)
           .where(inArray(emailPriorities.emailId, messageIds));
-        
+
         for (const p of priorities) {
           prioritiesMap[p.emailId] = {
             priority: p.priority as "high" | "medium" | "low",
@@ -430,7 +439,13 @@ export const emailsService = {
         const messages = filtered.map((row) => {
           const data = row.data as any;
           const normalized = normalizeMessage(data, row.entity_id);
-          const { messageId: _m, replyTo: _r, body: _b, contentType: _ct, ...summary } = normalized;
+          const {
+            messageId: _m,
+            replyTo: _r,
+            body: _b,
+            contentType: _ct,
+            ...summary
+          } = normalized;
           return {
             ...summary,
             priority: "medium" as const,
@@ -445,7 +460,6 @@ export const emailsService = {
       }
     }
   },
-
 
   async get(tenantId: string, input: { id: string }) {
     await ensureCorsairConfigured();
@@ -472,7 +486,11 @@ export const emailsService = {
         const reason = priorityRow?.reason;
 
         if (!priorityRow) {
-          void classifyAndStorePriority(normalized.id, normalized.subject, normalized.snippet);
+          void classifyAndStorePriority(
+            normalized.id,
+            normalized.subject,
+            normalized.snippet,
+          );
         }
 
         return {
@@ -482,7 +500,10 @@ export const emailsService = {
         };
       }
     } catch (dbError) {
-      console.warn("Failed to retrieve message from local sync DB, falling back to live API:", dbError);
+      console.warn(
+        "Failed to retrieve message from local sync DB, falling back to live API:",
+        dbError,
+      );
     }
 
     try {
@@ -490,7 +511,7 @@ export const emailsService = {
         client.gmail.api.messages.get({
           id: input.id,
           format: "full",
-        })
+        }),
       );
       const normalized = normalizeMessage(detail, input.id);
 
@@ -504,7 +525,11 @@ export const emailsService = {
       let reason = priorityRow?.reason;
 
       if (!priorityRow) {
-        void classifyAndStorePriority(normalized.id, normalized.subject, normalized.snippet);
+        void classifyAndStorePriority(
+          normalized.id,
+          normalized.subject,
+          normalized.snippet,
+        );
       }
 
       return {
@@ -677,7 +702,10 @@ export const emailsService = {
 
       return { ...thread, messages };
     } catch (error) {
-      console.error("[Gmail] getThread live API failed, trying local DB:", error);
+      console.error(
+        "[Gmail] getThread live API failed, trying local DB:",
+        error,
+      );
 
       // Fallback: reconstruct thread from the local Corsair sync DB
       try {
@@ -703,7 +731,10 @@ export const emailsService = {
 
         return { id: input.id, messages };
       } catch (dbError) {
-        console.error("[Gmail] getThread local DB fallback also failed:", dbError);
+        console.error(
+          "[Gmail] getThread local DB fallback also failed:",
+          dbError,
+        );
         throw error; // re-throw original so tRPC can surface it
       }
     }
@@ -832,7 +863,22 @@ export const emailsService = {
         },
       },
     });
-    return { id: result.id ?? "", success: true };
+    let messageId = result.message?.id;
+    if (!messageId && result.id) {
+      try {
+        const detail = await fetchWithRetry(() =>
+          client.gmail.api.drafts.get({
+            id: result.id!,
+            format: "metadata",
+          }),
+        );
+        messageId = detail.message?.id;
+      } catch (error) {
+        console.error("Error fetching created Gmail draft metadata:", error);
+      }
+    }
+
+    return { id: result.id ?? "", messageId, success: true };
   },
 
   async listDrafts(
@@ -855,7 +901,7 @@ export const emailsService = {
               client.gmail.api.drafts.get({
                 id: draft.id!,
                 format: "full",
-              })
+              }),
             );
             if (!detail.message) return null;
             return {
@@ -866,7 +912,7 @@ export const emailsService = {
             console.error(`Error fetching Gmail draft ${draft.id}:`, error);
             return null;
           }
-        })
+        }),
       );
       drafts.push(...batchResults);
       if (i + batchSize < draftList.length) {
@@ -890,7 +936,7 @@ export const emailsService = {
       client.gmail.api.drafts.get({
         id: input.id,
         format: "full",
-      })
+      }),
     );
     if (!draft.message) throw new Error("Draft message not found.");
     return {
@@ -978,5 +1024,4 @@ export const emailsService = {
       source: "corsair-local-db" as const,
     };
   },
-
 };

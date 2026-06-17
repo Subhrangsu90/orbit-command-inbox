@@ -3,16 +3,22 @@ import { corsair, ensureCorsairConfigured } from "~/server/corsair";
 export const calendarService = {
   async list(
     tenantId: string,
-    input: { timeMin?: string; maxResults?: number; q?: string; calendarIds?: string[] },
+    input: {
+      timeMin?: string;
+      maxResults?: number;
+      q?: string;
+      calendarIds?: string[];
+    },
   ) {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
     try {
       const timeMin = input.timeMin ?? new Date().toISOString();
-      const calendarIds = input.calendarIds && input.calendarIds.length > 0
-        ? input.calendarIds
-        : ["primary"];
-        
+      const calendarIds =
+        input.calendarIds && input.calendarIds.length > 0
+          ? input.calendarIds
+          : ["primary"];
+
       const fetchPromises = calendarIds.map(async (calendarId) => {
         try {
           const eventsRes = await client.googlecalendar.api.events.getMany({
@@ -28,21 +34,28 @@ export const calendarService = {
             calendarId,
           }));
         } catch (err: any) {
-          console.error(`Error fetching events for calendar ${calendarId}:`, err);
+          console.error(
+            `Error fetching events for calendar ${calendarId}:`,
+            err,
+          );
           return [];
         }
       });
-      
+
       const allEventsLists = await Promise.all(fetchPromises);
       const mergedEvents = allEventsLists.flat();
-      
+
       // Sort merged events by start time
       mergedEvents.sort((a: any, b: any) => {
-        const aTime = new Date(a.start?.dateTime || a.start?.date || 0).getTime();
-        const bTime = new Date(b.start?.dateTime || b.start?.date || 0).getTime();
+        const aTime = new Date(
+          a.start?.dateTime || a.start?.date || 0,
+        ).getTime();
+        const bTime = new Date(
+          b.start?.dateTime || b.start?.date || 0,
+        ).getTime();
         return aTime - bTime;
       });
-      
+
       return {
         events: mergedEvents,
       };
@@ -81,8 +94,12 @@ export const calendarService = {
             return new Date(start).getTime() >= timeMin;
           })
           .sort((a: any, b: any) => {
-            const aTime = new Date(a.start?.dateTime || a.start?.date || 0).getTime();
-            const bTime = new Date(b.start?.dateTime || b.start?.date || 0).getTime();
+            const aTime = new Date(
+              a.start?.dateTime || a.start?.date || 0,
+            ).getTime();
+            const bTime = new Date(
+              b.start?.dateTime || b.start?.date || 0,
+            ).getTime();
             return aTime - bTime;
           })
           .slice(0, input.maxResults ?? 50);
@@ -98,7 +115,7 @@ export const calendarService = {
   async listCalendars(tenantId: string) {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
-    
+
     // Custom OAuth helper to resolve token
     const [s, c, d] = await Promise.all([
       client.googlecalendar.keys.get_access_token(),
@@ -106,8 +123,9 @@ export const calendarService = {
       client.googlecalendar.keys.get_refresh_token(),
     ]);
     if (!d) throw new Error("No refresh token");
-    const creds = await client.googlecalendar.keys.get_integration_credentials();
-    
+    const creds =
+      await client.googlecalendar.keys.get_integration_credentials();
+
     const now = Math.floor(Date.now() / 1000);
     let token = s;
     if (!s || !c || Number(c) <= now + 300) {
@@ -124,22 +142,34 @@ export const calendarService = {
       if (!res.ok) {
         throw new Error(`Failed to refresh token: ${await res.text()}`);
       }
-      const data = (await res.json()) as { access_token: string; expires_in: number };
+      const data = (await res.json()) as {
+        access_token: string;
+        expires_in: number;
+      };
       await Promise.all([
         client.googlecalendar.keys.set_access_token(data.access_token),
-        client.googlecalendar.keys.set_expires_at(String(now + data.expires_in)),
+        client.googlecalendar.keys.set_expires_at(
+          String(now + data.expires_in),
+        ),
       ]);
       token = data.access_token;
     }
-    
-    const res = await fetch("https://www.googleapis.com/calendar/v3/users/me/calendarList", {
-      headers: {
-        Authorization: `Bearer ${token}`,
+
+    const res = await fetch(
+      "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
     if (!res.ok) {
       const text = await res.text();
-      if (text.includes("Account not found") || text.includes("credentials") || text.includes("token")) {
+      if (
+        text.includes("Account not found") ||
+        text.includes("credentials") ||
+        text.includes("token")
+      ) {
         return {
           calendars: [],
           notConnected: true,
@@ -147,7 +177,7 @@ export const calendarService = {
       }
       throw new Error(`Failed to fetch Google Calendars list: ${text}`);
     }
-    
+
     const data = (await res.json()) as { items?: any[] };
     return {
       calendars: data.items ?? [],
@@ -191,6 +221,8 @@ export const calendarService = {
 
       return {
         id: res.id ?? "",
+        htmlLink: res.htmlLink,
+        hangoutLink: res.hangoutLink,
         success: true,
       };
     } catch (error) {
@@ -283,7 +315,12 @@ export const calendarService = {
 
   async get(
     tenantId: string,
-    input: { id: string; calendarId?: string; timeZone?: string; maxAttendees?: number },
+    input: {
+      id: string;
+      calendarId?: string;
+      timeZone?: string;
+      maxAttendees?: number;
+    },
   ) {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
@@ -398,5 +435,3 @@ function serializeLocalEntity(row: {
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
   };
 }
-
-

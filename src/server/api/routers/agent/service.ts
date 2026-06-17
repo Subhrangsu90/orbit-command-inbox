@@ -10,9 +10,37 @@ export type Message = {
 };
 
 export type ExecutedAction =
-  | { type: "send_email"; to: string; subject: string; success: boolean }
+  | {
+      type: "send_email";
+      to: string;
+      subject: string;
+      body?: string;
+      success: boolean;
+    }
+  | {
+      type: "create_email_draft";
+      to: string;
+      subject: string;
+      body: string;
+      draftId: string;
+      messageId?: string;
+      mailLink?: string;
+      success: boolean;
+    }
   | { type: "reply_to_email"; id: string; success: boolean }
-  | { type: "create_calendar_event"; summary: string; startTime: string; success: boolean }
+  | {
+      type: "create_calendar_event";
+      eventId?: string;
+      calendarLink?: string;
+      meetingLink?: string;
+      summary: string;
+      startTime: string;
+      endTime: string;
+      description?: string;
+      location?: string;
+      attendees?: string[];
+      success: boolean;
+    }
   | { type: "search_emails"; query: string; count: number }
   | { type: "list_events"; count: number };
 
@@ -36,9 +64,13 @@ function summarizeModelError(error: unknown) {
 
   return {
     code: typeof maybeError.code === "string" ? maybeError.code : undefined,
-    status: typeof maybeError.status === "number" ? maybeError.status : undefined,
+    status:
+      typeof maybeError.status === "number" ? maybeError.status : undefined,
     type: typeof maybeError.type === "string" ? maybeError.type : undefined,
-    requestID: typeof maybeError.requestID === "string" ? maybeError.requestID : undefined,
+    requestID:
+      typeof maybeError.requestID === "string"
+        ? maybeError.requestID
+        : undefined,
     message:
       typeof maybeError.message === "string"
         ? maybeError.message
@@ -49,22 +81,51 @@ function summarizeModelError(error: unknown) {
 export const agentService = {
   async chat(
     tenantId: string,
-    input: { messages: Message[] }
-  ): Promise<{ response: string; actions: ExecutedAction[]; messages: Message[] }> {
+    input: { messages: Message[] },
+  ): Promise<{
+    response: string;
+    actions: ExecutedAction[];
+    messages: Message[];
+  }> {
     const llm = createOpenAIChatClient();
     if (!llm) {
       return {
-        response: "OpenAI agent config is missing. Please add `OPENAI_API_KEY` and `OPENAI_CHAT_MODEL` to your `.env` file.",
+        response:
+          "OpenAI agent config is missing. Please add `OPENAI_API_KEY` and `OPENAI_CHAT_MODEL` to your `.env` file.",
         actions: [],
         messages: input.messages,
       };
     }
-    const systemPrompt = `You are Orbit Assistant, a premium AI copilot built into the Orbit Command Inbox.
-You help the user manage their email and calendar using natural language.
-Today's date is ${new Date().toDateString()}. The current local time is ${new Date().toLocaleTimeString()}.
-Use the provided tools to send emails, search/list emails, reply to emails, create calendar events, and list events.
-When you call a tool, briefly and professionally summarize the action you took.
-Always be concise, precise, and professional.`;
+    const now = new Date();
+    const systemPrompt = `You are Orbit Assistant, a careful email and calendar copilot inside Orbit Command Inbox.
+
+Current date/time:
+- Date: ${now.toDateString()}
+- Local time: ${now.toLocaleTimeString()}
+- Time zone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
+
+Core behavior:
+- Understand the user's intent, break multi-step requests into individual tasks, and complete the useful parts with tools.
+- Be concise, clear, and action-oriented. Do not over-explain internal reasoning.
+- If a required detail is missing for an irreversible action, ask one short follow-up question.
+- Use ISO-8601 times for calendar tools. Resolve relative dates from the current local date/time above.
+
+Email rules:
+- Always use create_email_draft before any new outbound email, even when the user says "send". The user must see the draft before it is sent.
+- Use send_email only after the user clearly confirms a draft or exact final content that was already shown in the conversation.
+- Use reply_to_email only when a concrete message id is available or was found via search_emails.
+- Email bodies should be polished plain text with greeting, concise body, and sign-off when appropriate.
+
+Calendar and invitation rules:
+- Use create_calendar_event for meetings, reminders, calls, interviews, invites, or scheduling.
+- If attendees are included, create_calendar_event sends Google Calendar invitation updates automatically.
+- If the user asks for an invitation email too, create the calendar event first, then create_email_draft mentioning the meeting details and that a calendar invite was sent. Do not send the email until the user confirms the shown draft.
+- Do not invent a meeting link unless the user provides one; put provided video/meeting links in the event location or description and in the email body.
+
+After tools:
+- Summarize exactly what happened: drafted, sent, scheduled, searched, or listed.
+- When an event is scheduled, include the title, start/end time, attendees, location/link, and event id when available.
+- When an email draft is created, tell the user it is ready for review and ask for confirmation before sending.`;
 
     const conversationInput: ResponseInputItem[] = input.messages
       .filter((message) => message.role !== "system")
@@ -95,7 +156,10 @@ Always be concise, precise, and professional.`;
         });
       } catch (error) {
         const modelError = summarizeModelError(error);
-        console.error(`Error calling OpenAI agent model (${llm.model}):`, modelError);
+        console.error(
+          `Error calling OpenAI agent model (${llm.model}):`,
+          modelError,
+        );
 
         const modelAccessHint =
           modelError.code === "model_not_found"
@@ -111,7 +175,8 @@ Always be concise, precise, and professional.`;
 
       responseId = response.id;
       const functionCalls = response.output.filter(
-        (item): item is ResponseFunctionToolCall => item.type === "function_call",
+        (item): item is ResponseFunctionToolCall =>
+          item.type === "function_call",
       );
 
       if (functionCalls.length === 0) {
@@ -145,9 +210,36 @@ Always be concise, precise, and professional.`;
               type: "send_email",
               to: functionArgs.to,
               subject: functionArgs.subject,
+              body: functionArgs.body,
               success: res.success,
             });
             toolOutput = JSON.stringify({ success: true, messageId: res.id });
+          } else if (functionName === "create_email_draft") {
+            const res = await emailsService.createDraft(tenantId, {
+              to: functionArgs.to,
+              subject: functionArgs.subject,
+              body: functionArgs.body,
+            });
+            actionsTaken.push({
+              type: "create_email_draft",
+              to: functionArgs.to,
+              subject: functionArgs.subject,
+              body: functionArgs.body,
+              draftId: res.id,
+              messageId: res.messageId,
+              mailLink: res.messageId
+                ? `/mail/${encodeURIComponent(res.messageId)}?mailbox=drafts&draftId=${encodeURIComponent(res.id)}`
+                : "/mail?mailbox=drafts",
+              success: res.success,
+            });
+            toolOutput = JSON.stringify({
+              success: true,
+              draftId: res.id,
+              messageId: res.messageId,
+              mailLink: res.messageId
+                ? `/mail/${encodeURIComponent(res.messageId)}?mailbox=drafts&draftId=${encodeURIComponent(res.id)}`
+                : "/mail?mailbox=drafts",
+            });
           } else if (functionName === "reply_to_email") {
             const res = await emailsService.reply(tenantId, {
               id: functionArgs.id,
@@ -158,7 +250,10 @@ Always be concise, precise, and professional.`;
               id: functionArgs.id,
               success: res.success,
             });
-            toolOutput = JSON.stringify({ success: true, threadId: res.threadId });
+            toolOutput = JSON.stringify({
+              success: true,
+              threadId: res.threadId,
+            });
           } else if (functionName === "create_calendar_event") {
             const res = await calendarService.create(tenantId, {
               summary: functionArgs.summary,
@@ -170,11 +265,29 @@ Always be concise, precise, and professional.`;
             });
             actionsTaken.push({
               type: "create_calendar_event",
+              eventId: res.id,
+              calendarLink: res.htmlLink,
+              meetingLink: res.hangoutLink,
               summary: functionArgs.summary,
               startTime: functionArgs.startTime,
+              endTime: functionArgs.endTime,
+              description: functionArgs.description,
+              location: functionArgs.location,
+              attendees: functionArgs.attendees,
               success: res.success,
             });
-            toolOutput = JSON.stringify({ success: true, eventId: res.id });
+            toolOutput = JSON.stringify({
+              success: true,
+              eventId: res.id,
+              calendarLink: res.htmlLink,
+              meetingLink: res.hangoutLink,
+              summary: functionArgs.summary,
+              startTime: functionArgs.startTime,
+              endTime: functionArgs.endTime,
+              description: functionArgs.description,
+              location: functionArgs.location,
+              attendees: functionArgs.attendees,
+            });
           } else if (functionName === "search_emails") {
             const res = await emailsService.list(tenantId, {
               q: functionArgs.q,
@@ -214,11 +327,15 @@ Always be concise, precise, and professional.`;
             }));
             toolOutput = JSON.stringify({ events: simplifiedEvents });
           } else {
-            toolOutput = JSON.stringify({ error: `Unknown tool: ${functionName}` });
+            toolOutput = JSON.stringify({
+              error: `Unknown tool: ${functionName}`,
+            });
           }
         } catch (error: any) {
           console.error(`Error executing tool ${functionName}:`, error);
-          toolOutput = JSON.stringify({ error: error?.message || "Internal execution error" });
+          toolOutput = JSON.stringify({
+            error: error?.message || "Internal execution error",
+          });
         }
 
         toolOutputs.push({
@@ -232,7 +349,8 @@ Always be concise, precise, and professional.`;
     }
 
     return {
-      response: "I processed your request but exceeded my tool execution limit.",
+      response:
+        "I processed your request but exceeded my tool execution limit.",
       actions: actionsTaken,
       messages: input.messages,
     };

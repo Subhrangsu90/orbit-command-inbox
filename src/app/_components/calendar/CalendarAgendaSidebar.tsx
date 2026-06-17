@@ -46,6 +46,19 @@ function eventDateKey(event: CalendarEvent) {
   return date ? dateKey(date) : null;
 }
 
+function isUpcomingEvent(event: CalendarEvent, now = new Date()) {
+  const start = eventDate(event.start);
+  const end = eventDate(event.end);
+  if (!start) return false;
+
+  if (event.start?.date && !event.start.dateTime) {
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return start >= today;
+  }
+
+  return (end ?? start) >= now;
+}
+
 function sameDay(left: Date, right: Date) {
   return dateKey(left) === dateKey(right);
 }
@@ -88,8 +101,10 @@ function formatTimeRange(start?: EventTime, end?: EventTime) {
 
 export function CalendarAgendaSidebar({
   isConnected,
+  className = "",
 }: {
   isConnected: boolean;
+  className?: string;
 }) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
     null,
@@ -102,7 +117,13 @@ export function CalendarAgendaSidebar({
     { maxResults: 50 },
     { enabled: isConnected },
   );
-  const events = (data?.events ?? []) as CalendarEvent[];
+  const events = useMemo(
+    () =>
+      ((data?.events ?? []) as CalendarEvent[]).filter((event) =>
+        isUpcomingEvent(event),
+      ),
+    [data?.events],
+  );
   const isCalendarConnected = isConnected && !data?.notConnected;
   const monthDays = useMemo(() => buildMonthDays(visibleMonth), [visibleMonth]);
   const eventDays = useMemo(
@@ -121,7 +142,9 @@ export function CalendarAgendaSidebar({
 
   return (
     <>
-      <Card className="border-outline-variant bg-surface-container-lowest sticky top-6 hidden h-[calc(100vh-7rem)] min-h-[620px] overflow-hidden rounded-2xl border shadow-sm xl:col-span-3 xl:flex xl:flex-col">
+      <Card
+        className={`border-outline-variant bg-surface-container-lowest sticky top-6 hidden h-[calc(100vh-7rem)] min-h-[620px] overflow-hidden rounded-2xl border shadow-sm xl:flex xl:flex-col ${className}`}
+      >
         <div className="border-outline-variant flex items-center justify-between border-b px-4 py-3.5">
           <div>
             <p className="text-on-surface text-sm font-bold">Calendar</p>
@@ -265,7 +288,9 @@ export function CalendarAgendaSidebar({
               <div className="px-3 py-8 text-center">
                 <CalendarDays className="text-on-surface-variant mx-auto mb-2 size-7 opacity-50" />
                 <p className="text-on-surface text-xs font-semibold">
-                  {selectedDate ? "No events this day" : "No upcoming events"}
+                  {selectedDate
+                    ? "No upcoming events this day"
+                    : "No upcoming events"}
                 </p>
                 <p className="text-on-surface-variant text-3xs mt-1">
                   Your schedule is clear.

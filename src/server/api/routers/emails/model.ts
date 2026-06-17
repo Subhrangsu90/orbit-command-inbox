@@ -199,6 +199,7 @@ export const createDraftInputModel = z.object({
 
 export const createDraftOutputModel = z.object({
   id: z.string(),
+  messageId: z.string().optional(),
   success: z.boolean(),
 });
 
