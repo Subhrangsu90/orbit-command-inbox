@@ -127,16 +127,6 @@ export function CalendarAgendaSidebar({
             <p className="text-on-surface text-sm font-bold">Calendar</p>
             <p className="text-on-surface-variant text-3xs">Month and agenda</p>
           </div>
-          <button
-            type="button"
-            onClick={() => void refetch()}
-            disabled={!isCalendarConnected}
-            aria-label="Refresh calendar events"
-            title="Refresh calendar"
-            className="text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface rounded-full p-2 transition disabled:opacity-40"
-          >
-            <RefreshCw className="size-4" />
-          </button>
         </div>
 
         <div className="border-outline-variant shrink-0 border-b p-3">

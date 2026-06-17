@@ -42,11 +42,25 @@ export async function GET(req: Request) {
         }
       };
 
+      const onCalendarEventChanged = (data: { tenantId: string; type: string; calendarId: string; eventId?: string }) => {
+        if (data.tenantId === tenantId) {
+          try {
+            controller.enqueue(
+              encoder.encode(`event: calendar_event_changed\ndata: ${JSON.stringify(data)}\n\n`)
+            );
+          } catch {
+            cleanup();
+          }
+        }
+      };
+
       eventBus.on(EVENTS.EMAIL_RECEIVED, onEmailReceived);
+      eventBus.on(EVENTS.CALENDAR_EVENT_CHANGED, onCalendarEventChanged);
 
       const cleanup = () => {
         clearInterval(keepAliveInterval);
         eventBus.off(EVENTS.EMAIL_RECEIVED, onEmailReceived);
+        eventBus.off(EVENTS.CALENDAR_EVENT_CHANGED, onCalendarEventChanged);
         try {
           controller.close();
         } catch {}

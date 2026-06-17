@@ -110,7 +110,7 @@ export function WorkspaceLayout({
 
       <div
         className={`flex min-h-screen flex-grow flex-col transition-[margin] duration-200 ${
-          isSidebarExpanded ? "md:ml-80" : "md:ml-20"
+          isSidebarExpanded ? "md:ml-70" : "md:ml-20"
         }`}
       >
         <Header user={user} />

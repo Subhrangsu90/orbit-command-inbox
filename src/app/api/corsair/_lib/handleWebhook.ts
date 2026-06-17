@@ -1,6 +1,6 @@
 import { processWebhook } from "corsair";
 import { decodePubSubMessage } from "@corsair-dev/gmail";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { env } from "~/env";
 import { corsair, ensureCorsairConfigured } from "~/server/corsair";
 import { db } from "~/server/db";
@@ -35,11 +35,17 @@ async function resolveTenantFromEmail(emailAddress: string) {
     )
     .innerJoin(user, eq(corsairAccounts.tenantId, user.id))
     .where(
-      and(eq(corsairIntegrations.name, "gmail"), eq(user.email, emailAddress)),
-    )
-    .limit(2);
+      and(
+        or(
+          eq(corsairIntegrations.name, "gmail"),
+          eq(corsairIntegrations.name, "googlecalendar"),
+        ),
+        eq(user.email, emailAddress),
+      ),
+    );
 
-  if (matches.length === 1) return matches[0]?.tenantId ?? null;
+  const uniqueTenantIds = Array.from(new Set(matches.map((m) => m.tenantId)));
+  if (uniqueTenantIds.length === 1) return uniqueTenantIds[0] ?? null;
   return null;
 }
 
@@ -68,25 +74,49 @@ export async function handleCorsairWebhook(request: Request) {
     );
   }
 
+  const notification = getPushNotification(body as PubSubBody);
+  let resolvedEmail = "";
+  if (notification) {
+    if (typeof (notification as any).emailAddress === "string" && (notification as any).emailAddress) {
+      resolvedEmail = (notification as any).emailAddress;
+    } else if (typeof (notification as any).resourceUri === "string" && (notification as any).resourceUri) {
+      const match = (notification as any).resourceUri.match(/\/calendars\/([^\/\?]+)/);
+      if (match?.[1]) {
+        resolvedEmail = decodeURIComponent(match[1]);
+      }
+    }
+  }
+
+  if (!resolvedEmail) {
+    const resourceUri = headers["x-goog-resource-uri"] || headers["X-Goog-Resource-URI"];
+    if (typeof resourceUri === "string" && resourceUri) {
+      const match = resourceUri.match(/\/calendars\/([^\/\?]+)/);
+      if (match?.[1]) {
+        resolvedEmail = decodeURIComponent(match[1]);
+      }
+    }
+  }
+
   const tenantId =
     url.searchParams.get("tenantId") ??
     env.CORSAIR_WEBHOOK_TENANT_ID ??
-    (await resolveTenantFromEmail(
-      getPushNotification(body as PubSubBody)?.emailAddress ?? "",
-    ));
+    (await resolveTenantFromEmail(resolvedEmail));
 
   if (!tenantId) {
     const pubSubBody = body as PubSubBody;
-    const notification = getPushNotification(pubSubBody);
-    console.warn("[gmail.messageChanged] ignored unmapped notification", {
-      emailAddress: notification?.emailAddress,
-      historyId: notification?.historyId,
+    console.warn("[webhook.messageChanged] ignored unmapped notification", {
+      resolvedEmail,
+      emailAddress: (notification as any)?.emailAddress,
+      historyId: (notification as any)?.historyId,
       messageId: pubSubBody.message?.messageId,
       subscription: pubSubBody.subscription,
     });
 
-    // Acknowledge valid Pub/Sub deliveries so stale watches do not retry forever.
-    if (notification?.emailAddress && notification.historyId) {
+    // Acknowledge valid Pub/Sub/Webhook deliveries so stale watches do not retry forever.
+    if (
+      ((notification as any)?.emailAddress && (notification as any).historyId) ||
+      resolvedEmail
+    ) {
       return Response.json({ success: true, ignored: true });
     }
 
@@ -94,7 +124,7 @@ export async function handleCorsairWebhook(request: Request) {
       {
         success: false,
         error:
-          "Unable to resolve the Gmail webhook tenant. Ensure the Pub/Sub emailAddress matches a Gmail-connected Better Auth user, add ?tenantId=<user-id>, or configure CORSAIR_WEBHOOK_TENANT_ID.",
+          "Unable to resolve the webhook tenant. Ensure the Pub/Sub emailAddress or Calendar resourceUri matches a Gmail or Google Calendar connected Better Auth user, add ?tenantId=<user-id>, or configure CORSAIR_WEBHOOK_TENANT_ID.",
       },
       { status: 400 },
     );

@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { authClient } from "~/server/better-auth/client";
-import { primaryNavigationGroups } from "../_lib/navigation";
 import { api } from "~/trpc/react";
 import { Logo } from "./Logo";
 
@@ -19,12 +17,9 @@ type SidebarProps = {
   onToggleExpanded: () => void;
 };
 
-const fallbackAvatar =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuBapolA7_kFN-5tyUgt014ox7TJNYqSact834XOLnputn0OtiraG2YjffWlUXRzxtH2Coz0Gln3Or_9lbFcc8LGLYk_pjhtH3cWbGcsGmD5Cy-Q90Rq9VBXyDSfALCKJ1eK5ztl6LMJ0A9rHgmEL6OaiaUKyNvq0NXwqsbDe8khwphtwe1sFmXVmuMzJlen0venVqiMSrKp_HpFwlk9T6PcYyaJ1UIn4nv0Bz4KltkGcWs2AIpAr0e5UENZerN18Jczc7AebQNBveWk";
-
 export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
   const [isBrandHovered, setIsBrandHovered] = useState(false);
-  const [openGroup, setOpenGroup] = useState<string | null>("Email");
+  const [isRecentsExpanded, setIsRecentsExpanded] = useState(true);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -45,7 +40,7 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
   const handleCreateRoom = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    createRoomMutation.mutate({ title: `Conversation #${rooms.length + 1}` });
+    router.push("/chat");
   };
 
   useEffect(() => {
@@ -62,251 +57,242 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [isExpanded, onToggleExpanded]);
 
-  useEffect(() => {
-    if (pathname === "/") {
-      setOpenGroup("Email");
-    }
-  }, [pathname]);
+  const getActiveTab = () => {
+    if (pathname.startsWith("/chat")) return "agent";
+    if (pathname.startsWith("/mail") || searchParams.has("mailbox")) return "mail";
+    if (pathname.startsWith("/calendar")) return "calendar";
+    if (pathname.startsWith("/settings")) return "settings";
+    return "mail"; // fallback
+  };
 
-  async function handleLogout() {
-    await authClient.signOut();
-    window.location.reload();
-  }
+  const activeTab = getActiveTab();
 
   return (
     <aside
-      className={`bg-surface-container-low border-outline-variant fixed top-0 left-0 z-45 hidden h-full flex-col overflow-hidden border-r py-6 transition-[width] duration-200 md:flex ${
-        isExpanded ? "w-80" : "w-20"
+      className={`bg-surface-container-low border-outline-variant fixed top-0 left-0 z-45 hidden h-full transition-[width] duration-200 md:flex ${
+        isExpanded ? "w-70" : "w-18"
       }`}
     >
-      {/* Brand Header */}
-      <div className="px-md mb-4 flex h-10 shrink-0 items-center justify-between">
-        <div
-          className="gap-md relative flex w-full min-w-0 items-center justify-between"
-          onMouseEnter={() => setIsBrandHovered(true)}
-          onMouseLeave={() => setIsBrandHovered(false)}
-        >
-          {/* Collapsed state */}
-          {!isExpanded && (
-            <button
-              type="button"
-              onClick={onToggleExpanded}
-              aria-label="Expand sidebar"
-              aria-expanded={isExpanded}
-              title="Expand sidebar"
-              className="text-primary hover:bg-surface-container-high grid size-10 shrink-0 place-items-center rounded-full transition-colors"
-            >
-              {isBrandHovered ? (
-                <span className="material-symbols-outlined">
-                  left_panel_open
-                </span>
-              ) : (
-                <Logo showText={false} size={24} />
-              )}
-            </button>
-          )}
+      {/* COLUMN 1: Narrow Left Icon Strip (Always visible) */}
+      <div className="w-18 border-r border-outline-variant/30 flex flex-col items-center py-6 shrink-0 bg-surface-container-lowest">
+        {/* Orbit Logo at Top */}
+        <div className="mb-8 flex h-10 items-center justify-center">
+          <button
+            type="button"
+            onClick={onToggleExpanded}
+            onMouseEnter={() => setIsBrandHovered(true)}
+            onMouseLeave={() => setIsBrandHovered(false)}
+            title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+            className="text-primary hover:bg-surface-container-high grid size-10 place-items-center rounded-2xl transition-colors"
+          >
+            {isBrandHovered ? (
+              <span className="material-symbols-outlined text-2xl font-semibold">
+                {isExpanded ? "left_panel_close" : "left_panel_open"}
+              </span>
+            ) : (
+              <Logo showText={false} size={24} />
+            )}
+          </button>
+        </div>
 
-          {/* Expanded state */}
-          {isExpanded && (
-            <>
-              <div
-                aria-label="Orbit"
-                className="text-primary flex h-10 items-center"
-                title="Orbit"
-              >
-                <Logo showText={true} size={24} />
-              </div>
-              <button
-                type="button"
-                onClick={onToggleExpanded}
-                aria-label="Collapse sidebar"
-                aria-expanded={isExpanded}
-                title="Collapse sidebar"
-                className="text-primary hover:bg-surface-container-high grid size-10 shrink-0 place-items-center rounded-full transition-colors"
-              >
-                <span className="material-symbols-outlined">
-                  left_panel_close
-                </span>
-              </button>
-            </>
-          )}
+        {/* App Icons (Middle) */}
+        <div className="flex-grow flex flex-col items-center gap-4 w-full px-2">
+          {/* Agent Chat Icon */}
+          <Link
+            href="/chat"
+            className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
+              activeTab === "agent"
+                ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
+                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+            }`}
+            title="Agent Copilot"
+          >
+            <span className="material-symbols-outlined text-2xl font-bold">forum</span>
+          </Link>
+
+          {/* Mail Icon */}
+          <Link
+            href="/mail?mailbox=inbox"
+            className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
+              activeTab === "mail"
+                ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
+                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+            }`}
+            title="Mailbox"
+          >
+            <span className="material-symbols-outlined text-2xl font-bold">mail</span>
+          </Link>
+
+          {/* Calendar Icon */}
+          <Link
+            href="/calendar"
+            className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
+              activeTab === "calendar"
+                ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
+                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+            }`}
+            title="Calendar"
+          >
+            <span className="material-symbols-outlined text-2xl font-bold">calendar_month</span>
+          </Link>
+        </div>
+
+        {/* Settings Icon (Bottom) */}
+        <div className="w-full px-2">
+          <Link
+            href="/settings"
+            className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
+              activeTab === "settings"
+                ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
+                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+            }`}
+            title="Settings"
+          >
+            <span className="material-symbols-outlined text-2xl font-bold">settings</span>
+          </Link>
         </div>
       </div>
 
-      {/* Nav Menu */}
-      <nav className="flex-grow space-y-1 overflow-x-hidden overflow-y-auto">
-        {primaryNavigationGroups.map((group, groupIndex) => {
-          const isGroupOpen = group.label === openGroup;
-          const isGroupActive = group.items.some((item) => {
-            const target = new URL(item.to, "https://orbit.local");
-            const targetMailbox = target.searchParams.get("mailbox");
-
-            return targetMailbox
-              ? pathname === "/" && currentMailbox === targetMailbox
-              : item.exact
-                ? pathname === target.pathname
-                : pathname.startsWith(target.pathname);
-          });
-          const submenuId = group.label
-            ? `${group.label.toLowerCase()}-submenu`
-            : undefined;
-
-          return (
-            <div
-              key={group.label ?? `navigation-group-${groupIndex}`}
-              className={
-                groupIndex > 0
-                  ? "border-outline-variant mx-2 mt-3 border-t pt-3"
-                  : undefined
-              }
+      {/* COLUMN 2: Wider Sub-Navigation Drawer (Only visible when expanded) */}
+      {isExpanded && (
+        <div className="flex-1 flex flex-col py-6 overflow-hidden bg-surface-container-low animate-fade-in">
+          {/* Header depending on activeTab */}
+          <div className="px-5 mb-6 flex h-10 items-center justify-between shrink-0">
+            <h3 className="text-title-sm font-sans font-bold text-on-surface capitalize">
+              {activeTab === "agent" && "Agent Chat"}
+              {activeTab === "mail" && "Mailbox"}
+              {activeTab === "calendar" && "Calendar"}
+              {activeTab === "settings" && "Settings"}
+            </h3>
+            <button
+              type="button"
+              onClick={onToggleExpanded}
+              title="Collapse Sidebar"
+              className="text-on-surface-variant hover:bg-surface-container-high p-1 rounded-lg transition"
             >
-              {group.label && (
+              <span className="material-symbols-outlined text-lg">left_panel_close</span>
+            </button>
+          </div>
+
+          {/* Content Pane */}
+          <div className="flex-grow overflow-y-auto px-3 space-y-4">
+            {/* AGENT TAB */}
+            {activeTab === "agent" && (
+              <div className="space-y-4">
+                {/* New Chat Button */}
                 <button
                   type="button"
-                  aria-controls={submenuId}
-                  aria-expanded={isExpanded && isGroupOpen}
-                  aria-label={`${isGroupOpen ? "Collapse" : "Expand"} ${group.label} menu`}
-                  title={group.label}
-                  onClick={() => {
-                    if (!isExpanded) {
-                      setOpenGroup(group.label ?? null);
-                      onToggleExpanded();
-                      return;
-                    }
-
-                    setOpenGroup(isGroupOpen ? null : (group.label ?? null));
-                  }}
-                  className={`gap-md px-md mx-2 flex h-12 w-[calc(100%-1rem)] items-center rounded-full text-left transition-colors ${
-                    isGroupActive
-                      ? "text-on-secondary-container bg-secondary-container/60 font-bold"
-                      : "text-on-surface-variant hover:bg-surface-container-high"
-                  }`}
+                  onClick={handleCreateRoom}
+                  className="w-full py-2 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/15 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition"
                 >
-                  {group.icon && (
-                    <span className="material-symbols-outlined shrink-0">
-                      {group.icon}
-                    </span>
-                  )}
-                  {isExpanded && (
-                    <>
-                      <span className="text-label-lg flex-1 font-sans whitespace-nowrap">
-                        {group.label}
-                      </span>
-                      <span
-                        className={`material-symbols-outlined text-xl transition-transform duration-200 ${
-                          isGroupOpen ? "rotate-180" : ""
-                        }`}
-                      >
-                        expand_more
-                      </span>
-                    </>
-                  )}
+                  <span className="material-symbols-outlined text-sm font-bold">add</span>
+                  New Chat
                 </button>
-              )}
 
-              <div
-                id={submenuId}
-                className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
-                  group.label
-                    ? isExpanded && isGroupOpen
-                      ? "grid-rows-[1fr] opacity-100"
-                      : "grid-rows-[0fr] opacity-0"
-                    : "grid-rows-[1fr] opacity-100"
-                }`}
-              >
-                <div className="overflow-hidden">
-                  <div
-                    className={`space-y-1 ${
-                      group.label
-                        ? "border-outline-variant mt-1 ml-8 border-l pl-2"
-                        : ""
-                    }`}
-                  >
-                    {group.items.map((item) => {
-                      const target = new URL(item.to, "https://orbit.local");
-                      const targetMailbox = target.searchParams.get("mailbox");
-                      const isActive = targetMailbox
-                        ? pathname === "/" && currentMailbox === targetMailbox
-                        : item.exact
-                          ? pathname === target.pathname
-                          : pathname.startsWith(target.pathname);
-
-                      return (
-                        <div key={item.to} className="space-y-1">
-                          <Link
-                            aria-label={item.label}
-                            className={`gap-md px-md flex h-12 items-center rounded-full transition-all ${
-                              group.label ? "mr-2 h-10" : "mx-0"
-                            } ${
-                              isActive
-                                ? "bg-secondary-container text-on-secondary-container font-bold shadow-sm"
-                                : "text-on-surface-variant hover:bg-surface-container-high"
-                            }`}
-                            title={item.label}
-                            href={item.to}
-                          >
-                            <span className="material-symbols-outlined shrink-0">
-                              {item.icon}
-                            </span>
-                            {isExpanded && (
-                              <span className="text-label-lg font-sans whitespace-nowrap transition-opacity duration-150">
-                                {item.label}
-                              </span>
-                            )}
-                          </Link>
-
-                          {/* Render recent chat rooms under "Agent Chat" when sidebar is expanded */}
-                          {item.to === "/chat" && isExpanded && (
-                            <div className="pl-6 pr-2 py-1 space-y-1 border-l border-outline-variant/60 ml-5 mt-1">
-                              <div className="flex items-center justify-between pl-2 pb-1 pr-1">
-                                <p className="text-[10px] text-on-surface-variant/50 font-bold uppercase tracking-wider">
-                                  Recents
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={handleCreateRoom}
-                                  disabled={createRoomMutation.isPending}
-                                  title="New Chat"
-                                  className="text-primary hover:bg-surface-container-high p-0.5 rounded transition-colors flex items-center justify-center"
-                                >
-                                  <span className="material-symbols-outlined text-sm font-bold">add</span>
-                                </button>
-                              </div>
-                              {rooms.length === 0 ? (
-                                <p className="text-[11px] text-on-surface-variant/50 italic pl-2 py-1">No recent chats</p>
-                              ) : (
-                                rooms.slice(0, 8).map((room) => {
-                                  const isRoomActive =
-                                    pathname === "/chat" &&
-                                    searchParams.get("roomId") === room.id;
-                                  return (
-                                    <Link
-                                      key={room.id}
-                                      href={`/chat?roomId=${room.id}`}
-                                      className={`block truncate px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                                        isRoomActive
-                                          ? "bg-secondary-container/50 text-primary font-semibold"
-                                          : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                                      }`}
-                                      title={room.title}
-                                    >
-                                      {room.title}
-                                    </Link>
-                                  );
-                                })
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                {/* Recents list */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsRecentsExpanded(!isRecentsExpanded)}
+                      className="flex items-center gap-1 text-[10px] text-on-surface-variant/50 font-bold uppercase tracking-wider hover:text-on-surface transition"
+                    >
+                      <span className="material-symbols-outlined text-xs font-bold">
+                        {isRecentsExpanded ? "expand_more" : "chevron_right"}
+                      </span>
+                      Recent Chats
+                    </button>
                   </div>
+                  {isRecentsExpanded && (
+                    <div className="space-y-1">
+                      {rooms.length === 0 ? (
+                        <p className="text-[10px] text-on-surface-variant/40 italic px-2 py-1">No recent chats</p>
+                      ) : (
+                        rooms.slice(0, 5).map((room) => {
+                          const isRoomActive =
+                            pathname === "/chat" &&
+                            searchParams.get("roomId") === room.id;
+                          return (
+                            <Link
+                              key={room.id}
+                              href={`/chat?roomId=${room.id}`}
+                              className={`block truncate px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                                isRoomActive
+                                  ? "bg-secondary-container/50 text-primary font-semibold"
+                                  : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                              }`}
+                              title={room.title}
+                            >
+                              {room.title}
+                            </Link>
+                          );
+                        })
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </nav>
+            )}
+
+            {/* MAIL TAB */}
+            {activeTab === "mail" && (
+              <div className="space-y-1">
+                {[
+                  { to: "/mail?mailbox=inbox", label: "Inbox", icon: "inbox" },
+                  { to: "/mail?mailbox=starred", label: "Starred", icon: "star" },
+                  { to: "/mail?mailbox=sent", label: "Sent", icon: "send" },
+                  { to: "/mail?mailbox=drafts", label: "Drafts", icon: "draft" },
+                ].map((item) => {
+                  const target = new URL(item.to, "https://orbit.local");
+                  const targetMailbox = target.searchParams.get("mailbox");
+                  const isActive = pathname.startsWith("/mail") && currentMailbox === targetMailbox;
+
+                  return (
+                    <Link
+                      key={item.to}
+                      href={item.to}
+                      className={`gap-3 px-3.5 flex h-9 items-center rounded-xl transition-all ${
+                        isActive
+                          ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
+                          : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-lg shrink-0">{item.icon}</span>
+                      <span className="text-xs font-medium font-sans">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* CALENDAR TAB */}
+            {activeTab === "calendar" && (
+              <div className="space-y-1">
+                <Link
+                  href="/calendar"
+                  className={`gap-3 px-3.5 flex h-9 items-center rounded-xl transition-all bg-secondary-container text-on-secondary-container font-semibold shadow-xs`}
+                >
+                  <span className="material-symbols-outlined text-lg shrink-0">calendar_month</span>
+                  <span className="text-xs font-medium font-sans">Calendar Agenda</span>
+                </Link>
+              </div>
+            )}
+
+            {/* SETTINGS TAB */}
+            {activeTab === "settings" && (
+              <div className="space-y-1">
+                <Link
+                  href="/settings"
+                  className={`gap-3 px-3.5 flex h-9 items-center rounded-xl transition-all bg-secondary-container text-on-secondary-container font-semibold shadow-xs`}
+                >
+                  <span className="material-symbols-outlined text-lg shrink-0">settings</span>
+                  <span className="text-xs font-medium font-sans">Settings Panel</span>
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

@@ -15,12 +15,15 @@ import {
   Plus,
   Trash2,
   Edit2,
-  Check,
   X,
+  Mic,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { WorkspaceLayout } from "~/app/_components/WorkspaceLayout";
 import { api } from "~/trpc/react";
 import { Button } from "~/app/_components/ui/button";
+import { authClient } from "~/server/better-auth/client";
 
 type ExecutedAction =
   | { type: "send_email"; to: string; subject: string; success: boolean }
@@ -61,6 +64,13 @@ function ChatContainer() {
   const router = useRouter();
   const activeRoomId = searchParams.get("roomId");
   const utils = api.useUtils();
+
+  const session = authClient.useSession();
+  const userName = session.data?.user?.name;
+  const firstName = userName ? userName.split(" ")[0] : "";
+  const welcomeText = firstName
+    ? `Welcome back, ${firstName}. What's on your mind today?`
+    : "What's on your mind today?";
 
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState("");
@@ -121,12 +131,7 @@ function ChatContainer() {
     },
   });
 
-  // Automatically select the first room if rooms are available and none is selected
-  useEffect(() => {
-    if (!activeRoomId && rooms.length > 0 && rooms[0]?.id) {
-      selectRoom(rooms[0].id);
-    }
-  }, [rooms, activeRoomId]);
+
 
   // Focus rename input when editing starts
   useEffect(() => {
@@ -164,7 +169,7 @@ function ChatContainer() {
 
   // Create a new room and focus it
   const handleCreateRoom = () => {
-    createRoomMutation.mutate({ title: `Conversation #${rooms.length + 1}` });
+    selectRoom(null);
   };
 
   // Delete a chat room
@@ -216,9 +221,9 @@ function ChatContainer() {
           e.preventDefault();
           handleSend(input);
         }}
-        className={`w-full max-w-2xl mx-auto ${isCentered ? "mt-4" : ""}`}
+        className={`w-full max-w-2xl mx-auto flex flex-col items-center ${isCentered ? "mt-4" : ""}`}
       >
-        <div className="relative flex items-center bg-surface-container-highest border border-outline-variant/80 rounded-full p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-primary/45 transition">
+        <div className="relative flex items-center bg-surface-container-highest border border-outline-variant/80 rounded-full p-1.5 shadow-sm focus-within:ring-2 focus-within:ring-primary/45 transition w-full">
           {/* Plus icon on the left */}
           <button
             type="button"
@@ -239,48 +244,74 @@ function ChatContainer() {
             className="flex-grow bg-transparent text-on-surface text-body-md py-2 px-3 outline-none border-none placeholder:text-on-surface-variant/40"
           />
 
-          {/* Send/Submit Button */}
-          <Button
-            type="submit"
-            disabled={!input.trim() || chatInRoomMutation.isPending}
-            className={`rounded-full size-9 p-0 flex items-center justify-center shrink-0 shadow-xs transition ${
-              input.trim()
-                ? "bg-primary text-on-primary hover:bg-primary-container"
-                : "bg-surface-container-high text-on-surface-variant/20"
-            }`}
-          >
-            <Send className="size-4" />
-          </Button>
+          {/* Action elements on the right */}
+          <div className="flex items-center gap-1.5 pr-1.5 shrink-0">
+            {input.trim() ? (
+              <Button
+                type="submit"
+                disabled={chatInRoomMutation.isPending}
+                className="rounded-full size-9 p-0 flex items-center justify-center bg-primary text-on-primary hover:bg-primary-container shadow-xs transition"
+              >
+                <Send className="size-4" />
+              </Button>
+            ) : (
+              <>
+                <div className="flex items-center gap-1 bg-surface-container hover:bg-surface-container-high border border-outline-variant/40 rounded-full py-1 px-3.5 transition cursor-pointer select-none text-[11px] font-semibold text-on-surface-variant h-8">
+                  <span>GPT-4o-mini</span>
+                  <ChevronDown className="size-3 text-on-surface-variant/60" />
+                </div>
+                <button
+                  type="button"
+                  className="flex items-center justify-center size-9 rounded-full text-on-surface-variant hover:bg-surface-container-high transition"
+                  title="Voice input (Not supported)"
+                >
+                  <Mic className="size-4.5" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Suggestion Pills (Only show if centered/welcome state) */}
+        {/* Suggestion Cards (Only show if centered/welcome state) */}
         {isCentered && (
-          <div className="flex flex-wrap justify-center gap-2 mt-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 w-full px-4">
             {[
               {
-                text: "Send calendar invite & email",
+                title: "Schedule meeting",
+                desc: "Send calendar invite & email for next Thursday",
                 prompt: "Send a calendar invite to friend@corsair.dev at 9 AM next Thursday. Send him an email too saying I look forward to our meeting.",
-                icon: <Mail className="size-3.5" />,
+                icon: <Calendar className="size-5 text-primary" />,
               },
               {
-                text: "Search inbox",
+                title: "Search emails",
+                desc: "Find recent updates in your inbox",
                 prompt: "Search my inbox for recent emails about project updates.",
-                icon: <Search className="size-3.5" />,
+                icon: <Search className="size-5 text-primary" />,
               },
               {
-                text: "Show my calendar",
+                title: "View agenda",
+                desc: "Check your upcoming events for next week",
                 prompt: "Show my upcoming calendar events for next week.",
-                icon: <Calendar className="size-3.5" />,
+                icon: <Mail className="size-5 text-primary" />,
               },
             ].map((sug, idx) => (
               <button
                 key={idx}
                 type="button"
                 onClick={() => setInput(sug.prompt)}
-                className="flex items-center gap-1.5 bg-surface-container border border-outline-variant/60 hover:bg-surface-container-high text-on-surface text-2xs px-4 py-2 rounded-full transition font-semibold"
+                className="flex flex-col items-start p-4 bg-surface-container hover:bg-surface-container-high border border-outline-variant/40 rounded-2xl transition text-left gap-2.5 w-full shadow-xs"
               >
-                {sug.icon}
-                {sug.text}
+                <div className="p-2 bg-primary/10 rounded-xl shrink-0">
+                  {sug.icon}
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-label-md font-bold text-on-surface font-sans truncate">
+                    {sug.title}
+                  </h4>
+                  <p className="text-[11px] text-on-surface-variant/70 font-sans mt-0.5 leading-normal">
+                    {sug.desc}
+                  </p>
+                </div>
               </button>
             ))}
           </div>
@@ -393,7 +424,7 @@ function ChatContainer() {
           ) : messages.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center p-8 bg-transparent max-w-3xl mx-auto w-full">
               <h1 className="text-3xl sm:text-4xl font-sans font-bold text-on-surface text-center mb-8 tracking-tight animate-fade-in">
-                What's on your mind today?
+                {welcomeText}
               </h1>
               {renderInputForm(true)}
             </div>
@@ -447,7 +478,7 @@ function ChatContainer() {
                 })}
 
                 {/* Thinking indicator */}
-                {chatInRoomMutation.isPending && (
+                {(chatInRoomMutation.isPending || createRoomMutation.isPending) && (
                   <div className="flex gap-4 max-w-[80%] mr-auto items-start">
                     <div className="size-9 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-xs animate-pulse">
                       O
@@ -455,7 +486,7 @@ function ChatContainer() {
                     <div className="bg-surface-container-highest text-on-surface border border-outline-variant px-5 py-3.5 rounded-3xl rounded-tl-none flex items-center gap-3">
                       <RefreshCw className="size-4 animate-spin text-primary" />
                       <span className="text-body-md text-on-surface-variant font-medium animate-pulse">
-                        Orbit Agent is executing actions...
+                        {createRoomMutation.isPending ? "Creating conversation..." : "Orbit Agent is executing actions..."}
                       </span>
                     </div>
                   </div>

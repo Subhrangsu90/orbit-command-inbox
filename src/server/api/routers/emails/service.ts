@@ -171,6 +171,25 @@ function isNotConnectedError(error: unknown) {
   ].some((value) => message.includes(value));
 }
 
+async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1000): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: any) {
+    const isRateLimit =
+      error?.status === 429 ||
+      error?.status === 403 ||
+      String(error).includes("Quota exceeded") ||
+      String(error?.message).includes("Quota exceeded");
+
+    if (retries > 0 && isRateLimit) {
+      console.warn(`[Gmail API] Rate limit or quota hit. Retrying in ${delayMs}ms... (Retries left: ${retries})`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return fetchWithRetry(fn, retries - 1, delayMs * 2);
+    }
+    throw error;
+  }
+}
+
 type GmailMessage = Awaited<
   ReturnType<
     ReturnType<typeof corsair.withTenant>["gmail"]["api"]["messages"]["get"]
@@ -276,32 +295,44 @@ export const emailsService = {
         pageToken: input.pageToken,
       });
 
-      const messages = await Promise.all(
-        (listResult.messages ?? []).map(async (message) => {
-          if (!message.id) return null;
-          try {
-            const detail = await client.gmail.api.messages.get({
-              id: message.id,
-              format: "full",
-            });
-            const normalized = normalizeMessage(detail, message.id);
-            const {
-              messageId: _messageId,
-              replyTo: _replyTo,
-              body: _body,
-              contentType: _contentType,
-              ...summary
-            } = normalized;
-            return summary;
-          } catch (error) {
-            console.error(
-              `Error fetching Gmail metadata for ${message.id}:`,
-              error,
-            );
-            return null;
-          }
-        }),
-      );
+      const messages: any[] = [];
+      const batchSize = 4;
+      const msgList = listResult.messages ?? [];
+      for (let i = 0; i < msgList.length; i += batchSize) {
+        const batch = msgList.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(async (message) => {
+            if (!message.id) return null;
+            try {
+              const detail = await fetchWithRetry(() =>
+                client.gmail.api.messages.get({
+                  id: message.id!,
+                  format: "full",
+                })
+              );
+              const normalized = normalizeMessage(detail, message.id);
+              const {
+                messageId: _messageId,
+                replyTo: _replyTo,
+                body: _body,
+                contentType: _contentType,
+                ...summary
+              } = normalized;
+              return summary;
+            } catch (error) {
+              console.error(
+                `Error fetching Gmail metadata for ${message.id}:`,
+                error,
+              );
+              return null;
+            }
+          })
+        );
+        messages.push(...batchResults);
+        if (i + batchSize < msgList.length) {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+      }
 
       const filteredMessages = messages.filter(
         (message): message is NonNullable<typeof message> => message !== null,
@@ -352,11 +383,47 @@ export const emailsService = {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
 
+    // Try local DB lookup first to avoid hitting rate limits or connection resets
     try {
-      const detail = await client.gmail.api.messages.get({
-        id: input.id,
-        format: "full",
-      });
+      const localRows = await client.gmail.db.messages.search({
+        entity_id: input.id,
+        limit: 1,
+      } as any);
+
+      if (localRows && localRows.length > 0 && localRows[0]?.data) {
+        const detail = localRows[0].data as any;
+        const normalized = normalizeMessage(detail, input.id);
+
+        const [priorityRow] = await db
+          .select()
+          .from(emailPriorities)
+          .where(eq(emailPriorities.emailId, input.id))
+          .limit(1);
+
+        const priority = priorityRow?.priority;
+        const reason = priorityRow?.reason;
+
+        if (!priorityRow) {
+          void classifyAndStorePriority(normalized.id, normalized.subject, normalized.snippet);
+        }
+
+        return {
+          ...normalized,
+          priority: (priority ?? "medium") as "high" | "medium" | "low",
+          priorityReason: reason ?? "Pending classification...",
+        };
+      }
+    } catch (dbError) {
+      console.warn("Failed to retrieve message from local sync DB, falling back to live API:", dbError);
+    }
+
+    try {
+      const detail = await fetchWithRetry(() =>
+        client.gmail.api.messages.get({
+          id: input.id,
+          format: "full",
+        })
+      );
       const normalized = normalizeMessage(detail, input.id);
 
       const [priorityRow] = await db
@@ -631,20 +698,37 @@ export const emailsService = {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
     const result = await client.gmail.api.drafts.list(input);
-    const drafts = await Promise.all(
-      (result.drafts ?? []).map(async (draft) => {
-        if (!draft.id) return null;
-        const detail = await client.gmail.api.drafts.get({
-          id: draft.id,
-          format: "full",
-        });
-        if (!detail.message) return null;
-        return {
-          ...normalizeMessage(detail.message, detail.message.id),
-          draftId: detail.id ?? draft.id,
-        };
-      }),
-    );
+    const drafts: any[] = [];
+    const batchSize = 4;
+    const draftList = result.drafts ?? [];
+    for (let i = 0; i < draftList.length; i += batchSize) {
+      const batch = draftList.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(async (draft) => {
+          if (!draft.id) return null;
+          try {
+            const detail = await fetchWithRetry(() =>
+              client.gmail.api.drafts.get({
+                id: draft.id!,
+                format: "full",
+              })
+            );
+            if (!detail.message) return null;
+            return {
+              ...normalizeMessage(detail.message, detail.message.id),
+              draftId: detail.id ?? draft.id,
+            };
+          } catch (error) {
+            console.error(`Error fetching Gmail draft ${draft.id}:`, error);
+            return null;
+          }
+        })
+      );
+      drafts.push(...batchResults);
+      if (i + batchSize < draftList.length) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
+    }
 
     return {
       drafts: drafts.filter(
@@ -658,10 +742,12 @@ export const emailsService = {
   async getDraft(tenantId: string, input: { id: string }) {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
-    const draft = await client.gmail.api.drafts.get({
-      id: input.id,
-      format: "full",
-    });
+    const draft = await fetchWithRetry(() =>
+      client.gmail.api.drafts.get({
+        id: input.id,
+        format: "full",
+      })
+    );
     if (!draft.message) throw new Error("Draft message not found.");
     return {
       ...normalizeMessage(draft.message, draft.message.id),

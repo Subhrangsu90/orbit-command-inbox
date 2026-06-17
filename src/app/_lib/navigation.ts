@@ -13,6 +13,8 @@ export type NavigationGroup = {
 
 export const primaryNavigationGroups: NavigationGroup[] = [
   {
+    label: "Agent",
+    icon: "forum",
     items: [
       {
         to: "/chat",
@@ -22,29 +24,29 @@ export const primaryNavigationGroups: NavigationGroup[] = [
     ],
   },
   {
-    label: "Email",
+    label: "Mail",
     icon: "mail",
     items: [
       {
-        to: "/?mailbox=inbox",
+        to: "/mail?mailbox=inbox",
         label: "Inbox",
         icon: "inbox",
         exact: true,
       },
       {
-        to: "/?mailbox=starred",
+        to: "/mail?mailbox=starred",
         label: "Starred",
         icon: "star",
         exact: true,
       },
       {
-        to: "/?mailbox=sent",
+        to: "/mail?mailbox=sent",
         label: "Sent",
         icon: "send",
         exact: true,
       },
       {
-        to: "/?mailbox=drafts",
+        to: "/mail?mailbox=drafts",
         label: "Drafts",
         icon: "draft",
         exact: true,
@@ -52,12 +54,18 @@ export const primaryNavigationGroups: NavigationGroup[] = [
     ],
   },
   {
+    label: "Calendar",
+    icon: "calendar_month",
     items: [
       {
         to: "/calendar",
         label: "Calendar",
         icon: "calendar_month",
       },
+    ],
+  },
+  {
+    items: [
       {
         to: "/settings",
         label: "Settings",
@@ -74,7 +82,7 @@ export const mobileNavigation: NavigationItem[] = [
     icon: "forum",
   },
   {
-    to: "/",
+    to: "/mail?mailbox=inbox",
     label: "Inbox",
     icon: "mail",
     exact: true,
