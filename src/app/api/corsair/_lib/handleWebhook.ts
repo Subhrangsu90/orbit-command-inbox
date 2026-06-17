@@ -14,6 +14,61 @@ type PubSubBody = {
   subscription?: string;
 };
 
+const WEBHOOK_RATE_LIMIT_WINDOW_MS = 60_000;
+const WEBHOOK_RATE_LIMIT_MAX_REQUESTS = 30;
+const WEBHOOK_DEDUPE_TTL_MS = 10 * 60_000;
+
+const webhookRequestLog = new Map<string, number[]>();
+const processedWebhookMessages = new Map<string, number>();
+
+function pruneWebhookState(now: number) {
+  for (const [key, timestamps] of webhookRequestLog) {
+    const active = timestamps.filter(
+      (timestamp) => now - timestamp < WEBHOOK_RATE_LIMIT_WINDOW_MS,
+    );
+    if (active.length) {
+      webhookRequestLog.set(key, active);
+    } else {
+      webhookRequestLog.delete(key);
+    }
+  }
+
+  for (const [key, timestamp] of processedWebhookMessages) {
+    if (now - timestamp >= WEBHOOK_DEDUPE_TTL_MS) {
+      processedWebhookMessages.delete(key);
+    }
+  }
+}
+
+function getPubSubDedupeKey(body: PubSubBody) {
+  const messageId = body.message?.messageId;
+  if (!messageId) return null;
+  return `${body.subscription ?? "default"}:${messageId}`;
+}
+
+function isDuplicateWebhookDelivery(body: PubSubBody, now: number) {
+  const key = getPubSubDedupeKey(body);
+  if (!key) return false;
+  if (processedWebhookMessages.has(key)) return true;
+  processedWebhookMessages.set(key, now);
+  return false;
+}
+
+function isWebhookRateLimited(tenantId: string, now: number) {
+  const timestamps = webhookRequestLog.get(tenantId) ?? [];
+  const active = timestamps.filter(
+    (timestamp) => now - timestamp < WEBHOOK_RATE_LIMIT_WINDOW_MS,
+  );
+
+  if (active.length >= WEBHOOK_RATE_LIMIT_MAX_REQUESTS) {
+    webhookRequestLog.set(tenantId, active);
+    return true;
+  }
+
+  webhookRequestLog.set(tenantId, [...active, now]);
+  return false;
+}
+
 function getPushNotification(body: PubSubBody) {
   if (!body.message?.data) return null;
   try {
@@ -128,6 +183,28 @@ export async function handleCorsairWebhook(request: Request) {
       },
       { status: 400 },
     );
+  }
+
+  const pubSubBody = body as PubSubBody;
+  const now = Date.now();
+  pruneWebhookState(now);
+
+  if (isDuplicateWebhookDelivery(pubSubBody, now)) {
+    console.info("[webhook.messageChanged] ignored duplicate delivery", {
+      tenantId,
+      messageId: pubSubBody.message?.messageId,
+      subscription: pubSubBody.subscription,
+    });
+    return Response.json({ success: true, duplicate: true });
+  }
+
+  if (isWebhookRateLimited(tenantId, now)) {
+    console.warn("[webhook.messageChanged] rate limited delivery", {
+      tenantId,
+      messageId: pubSubBody.message?.messageId,
+      subscription: pubSubBody.subscription,
+    });
+    return Response.json({ success: true, rateLimited: true });
   }
 
   const result = await processWebhook(corsair, headers, body, { tenantId });

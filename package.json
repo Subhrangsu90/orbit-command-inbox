@@ -29,7 +29,7 @@
     "@corsair-dev/cli": "^0.1.19",
     "@corsair-dev/github": "^0.1.7",
     "@corsair-dev/gmail": "^0.1.4",
-    "@corsair-dev/googlecalendar": "^0.1.4",
+    "@corsair-dev/googlecalendar": "^0.1.5",
     "@corsair-dev/mcp": "^0.1.20",
     "@t3-oss/env-nextjs": "^0.13.11",
     "@tanstack/react-query": "^5.101.0",
@@ -51,7 +51,8 @@
     "superjson": "^2.2.6",
     "trpc-to-openapi": "^3.3.0",
     "tsx": "^4.22.4",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",

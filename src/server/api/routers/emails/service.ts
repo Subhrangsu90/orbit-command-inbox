@@ -171,17 +171,31 @@ function isNotConnectedError(error: unknown) {
   ].some((value) => message.includes(value));
 }
 
+function isRateLimitError(error: unknown) {
+  const status =
+    typeof error === "object" && error !== null && "status" in error
+      ? Number((error as { status?: unknown }).status)
+      : undefined;
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  const value = String(error).toLowerCase();
+
+  return (
+    status === 429 ||
+    status === 403 ||
+    message.includes("too many requests") ||
+    message.includes("quota exceeded") ||
+    message.includes("rate limit") ||
+    value.includes("too many requests") ||
+    value.includes("quota exceeded") ||
+    value.includes("rate limit")
+  );
+}
+
 async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1000): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
-    const isRateLimit =
-      error?.status === 429 ||
-      error?.status === 403 ||
-      String(error).includes("Quota exceeded") ||
-      String(error?.message).includes("Quota exceeded");
-
-    if (retries > 0 && isRateLimit) {
+    if (retries > 0 && isRateLimitError(error)) {
       console.warn(`[Gmail API] Rate limit or quota hit. Retrying in ${delayMs}ms... (Retries left: ${retries})`);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
       return fetchWithRetry(fn, retries - 1, delayMs * 2);
@@ -189,6 +203,15 @@ async function fetchWithRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 10
     throw error;
   }
 }
+
+const FALLBACK_GMAIL_LABELS = [
+  { id: "INBOX", name: "Inbox", type: "system" as const },
+  { id: "STARRED", name: "Starred", type: "system" as const },
+  { id: "SENT", name: "Sent", type: "system" as const },
+  { id: "DRAFT", name: "Drafts", type: "system" as const },
+  { id: "TRASH", name: "Trash", type: "system" as const },
+  { id: "UNREAD", name: "Unread", type: "system" as const },
+];
 
 type GmailMessage = Awaited<
   ReturnType<
@@ -638,7 +661,52 @@ export const emailsService = {
   ) {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
-    return client.gmail.api.threads.get(input);
+
+    try {
+      const thread = await fetchWithRetry(() =>
+        client.gmail.api.threads.get(input),
+      );
+
+      // Deduplicate messages by id to avoid React duplicate-key warnings
+      const seen = new Set<string>();
+      const messages = (thread.messages ?? []).filter((m) => {
+        if (!m.id || seen.has(m.id)) return false;
+        seen.add(m.id);
+        return true;
+      });
+
+      return { ...thread, messages };
+    } catch (error) {
+      console.error("[Gmail] getThread live API failed, trying local DB:", error);
+
+      // Fallback: reconstruct thread from the local Corsair sync DB
+      try {
+        const localRows = await client.gmail.db.messages.search({
+          limit: 50,
+          offset: 0,
+        } as any);
+
+        const threadMessages = (localRows ?? [])
+          .filter((row) => {
+            const data = row.data as any;
+            return data?.threadId === input.id;
+          })
+          .map((row) => row.data as any);
+
+        // Deduplicate by id
+        const seen = new Set<string>();
+        const messages = threadMessages.filter((m: any) => {
+          if (!m.id || seen.has(m.id)) return false;
+          seen.add(m.id);
+          return true;
+        });
+
+        return { id: input.id, messages };
+      } catch (dbError) {
+        console.error("[Gmail] getThread local DB fallback also failed:", dbError);
+        throw error; // re-throw original so tRPC can surface it
+      }
+    }
   },
 
   async modifyThread(
@@ -672,8 +740,39 @@ export const emailsService = {
   async listLabels(tenantId: string) {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
-    const result = await client.gmail.api.labels.list({});
-    return { labels: result.labels ?? [] };
+
+    try {
+      const result = await fetchWithRetry(
+        () => client.gmail.api.labels.list({}),
+        2,
+        750,
+      );
+      return { labels: result.labels ?? [] };
+    } catch (error) {
+      console.error("Error listing Gmail labels:", error);
+      if (isNotConnectedError(error)) return { labels: [] };
+
+      try {
+        const localRows = await client.gmail.db.labels.search({
+          limit: 100,
+          offset: 0,
+        } as any);
+
+        const labels = (localRows ?? [])
+          .map((row) => row.data as Record<string, unknown>)
+          .filter((label) => typeof label.id === "string");
+
+        if (labels.length > 0) return { labels };
+      } catch (dbError) {
+        console.warn("[Gmail] Local label cache fallback failed:", dbError);
+      }
+
+      if (isRateLimitError(error)) {
+        return { labels: FALLBACK_GMAIL_LABELS };
+      }
+
+      throw error;
+    }
   },
 
   async getLabel(tenantId: string, input: { id: string }) {

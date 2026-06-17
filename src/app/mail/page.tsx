@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -35,6 +35,7 @@ import { ComposeEmailDialog } from "~/app/_components/email/ComposeEmailDialog";
 import { LabelsDialog } from "~/app/_components/email/LabelsDialog";
 import { CalendarAgendaSidebar } from "~/app/_components/calendar/CalendarAgendaSidebar";
 import { mailboxDisplayName } from "~/app/_utils/emailPresentation";
+import { useMailStore } from "./mailStore";
 
 const CATEGORIES = [
   { id: "primary", name: "Primary", icon: Inbox },
@@ -76,42 +77,60 @@ function MailboxHome() {
     api.corsair.getConnections.useQuery();
   const isConnected = !!connections?.gmail;
 
-  // Tabs and pagination state
-  const [category, setCategory] = useState<
-    "primary" | "promotions" | "social" | "updates" | "forums"
-  >("primary");
-  const [currentPageToken, setCurrentPageToken] = useState<string | undefined>(
-    undefined,
-  );
-  const [pageTokenHistory, setPageTokenHistory] = useState<
-    (string | undefined)[]
-  >([undefined]);
-
-  // Search and selection state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [selectedEmailId, setSelectedEmailId] = useState<string | null>(null);
-  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
+  const {
+    category,
+    currentPageToken,
+    pageTokenHistory,
+    searchQuery,
+    selectedIndex,
+    selectedEmailId,
+    selectedMessageIds,
+    isComposeOpen,
+    isLabelsOpen,
+    isHelpOpen,
+    editingDraftId,
+    newLabelName,
+    isAdvancedSearchOpen,
+    filterFrom,
+    filterTo,
+    filterSubject,
+    filterHasAttachment,
+    filterIsStarred,
+    filterIsUnread,
+    filterAfter,
+    filterBefore,
+    composeTo,
+    composeSubject,
+    composeBody,
+    setCategory,
+    setCurrentPageToken,
+    setPageTokenHistory,
+    setSearchQuery,
+    setSelectedIndex,
+    setSelectedEmailId,
+    setSelectedMessageIds,
+    setIsComposeOpen,
+    setIsLabelsOpen,
+    setIsHelpOpen,
+    setEditingDraftId,
+    setNewLabelName,
+    setIsAdvancedSearchOpen,
+    setFilterFrom,
+    setFilterTo,
+    setFilterSubject,
+    setFilterHasAttachment,
+    setFilterIsStarred,
+    setFilterIsUnread,
+    setFilterAfter,
+    setFilterBefore,
+    setComposeTo,
+    setComposeSubject,
+    setComposeBody,
+  } = useMailStore();
   const manuallyMarkedUnreadRef = useRef<Set<string>>(new Set());
-  const [isComposeOpen, setIsComposeOpen] = useState(false);
-  const [isLabelsOpen, setIsLabelsOpen] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
-  const [newLabelName, setNewLabelName] = useState("");
   const searchSource = searchQuery.trim()
     ? (searchQuery.includes(":") || mailbox === "drafts" ? ("gmail" as const) : ("semantic" as const))
     : ("gmail" as const);
-
-  // Advanced Search Filter state
-  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
-  const [filterFrom, setFilterFrom] = useState("");
-  const [filterTo, setFilterTo] = useState("");
-  const [filterSubject, setFilterSubject] = useState("");
-  const [filterHasAttachment, setFilterHasAttachment] = useState(false);
-  const [filterIsStarred, setFilterIsStarred] = useState(false);
-  const [filterIsUnread, setFilterIsUnread] = useState(false);
-  const [filterAfter, setFilterAfter] = useState("");
-  const [filterBefore, setFilterBefore] = useState("");
 
   function compileSearchQuery() {
     const parts: string[] = [];
@@ -129,11 +148,6 @@ function MailboxHome() {
     }
     return parts.join(" ");
   }
-
-  // Compose form state
-  const [composeTo, setComposeTo] = useState("");
-  const [composeSubject, setComposeSubject] = useState("");
-  const [composeBody, setComposeBody] = useState("");
 
   // Reset pagination on category or search query change
   useEffect(() => {
@@ -250,6 +264,9 @@ function MailboxHome() {
 
   const labelsQuery = api.emails.listLabels.useQuery(undefined, {
     enabled: isGmailConnected,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
   });
   const labelsData = labelsQuery.data;
   const refetchLabels = labelsQuery.refetch;
@@ -262,8 +279,22 @@ function MailboxHome() {
     {
       enabled:
         mailbox !== "drafts" && Boolean(selectedEmail?.threadId) && isConnected,
+      retry: false,          // don't auto-retry on 429 — the server already handles it
+      retryOnMount: false,
+      staleTime: 30_000,     // re-use cached thread for 30 s before refetching
     },
   );
+
+  // Deduplicate thread messages by id (client-side safety net for the React key warning)
+  const threadMessages = (() => {
+    const msgs = threadDetail?.messages ?? [];
+    const seen = new Set<string>();
+    return msgs.filter((m: any) => {
+      if (!m.id || seen.has(m.id)) return false;
+      seen.add(m.id as string);
+      return true;
+    });
+  })();
 
   // SSE Webhook real-time notification integration
   useEffect(() => {
@@ -285,7 +316,6 @@ function MailboxHome() {
         console.info("[SSE] Realtime email notification received");
         void emailsQuery.refetch();
         void draftsQuery.refetch();
-        void labelsQuery.refetch();
 
         if (typeof window !== "undefined" && "Notification" in window) {
           if (Notification.permission === "granted") {
@@ -313,7 +343,7 @@ function MailboxHome() {
       }
       clearTimeout(retryTimeout);
     };
-  }, [isConnected, emailsQuery.refetch, draftsQuery.refetch, labelsQuery.refetch]);
+  }, [isConnected, emailsQuery.refetch, draftsQuery.refetch]);
 
   function refetchMailbox() {
     return mailbox === "drafts" ? draftsQuery.refetch() : emailsQuery.refetch();
@@ -1076,7 +1106,7 @@ function MailboxHome() {
           email={selectedEmail}
           emailDetail={emailDetail}
           isLoadingDetail={isLoadingEmailDetail}
-          threadMessages={threadDetail?.messages}
+          threadMessages={threadMessages}
           mailbox={mailbox}
           onClose={() => setSelectedEmailId(null)}
           onSelectMessage={(id) => setSelectedEmailId(id)}
