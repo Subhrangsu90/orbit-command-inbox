@@ -22,10 +22,10 @@ const STORAGE_KEY = "votyx.workspace-preferences";
 const defaultPreferences: WorkspacePreferences = {
   ...defaultAppearance,
   onboarded: false,
-  settingsShortcut: "Alt+s",
+  settingsShortcut: "Alt+G",
   shortcutPrevEmail: "k",
   shortcutNextEmail: "j",
-  shortcutReadEmail: "Enter",
+  shortcutReadEmail: "o",
   shortcutTrashEmail: "e",
   shortcutStarEmail: "s",
   shortcutComposeEmail: "c",

@@ -70,7 +70,7 @@ export function WorkspaceLayout({
       }
 
       const pressedShortcut = keys.join("+");
-      const configuredShortcut = preferences.settingsShortcut || "Alt+s";
+      const configuredShortcut = preferences.settingsShortcut || "Alt+G";
 
       if (pressedShortcut.toLowerCase() === configuredShortcut.toLowerCase()) {
         e.preventDefault();

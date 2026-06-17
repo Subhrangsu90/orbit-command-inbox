@@ -44,7 +44,7 @@ export function Header({ user }: HeaderProps) {
         <Link
           aria-label="Open settings"
           className="grid size-10 place-items-center rounded-full text-on-surface-variant transition-all hover:bg-surface-container-high hover:text-primary relative group"
-          title={`Settings (${preferences.settingsShortcut || "Alt+s"})`}
+          title={`Settings (${preferences.settingsShortcut || "Alt+G"})`}
           href="/settings"
         >
           <span className="material-symbols-outlined text-icon-md transition-transform duration-300 group-hover:rotate-45">

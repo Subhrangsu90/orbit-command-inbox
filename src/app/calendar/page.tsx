@@ -9,6 +9,8 @@ import {
   Search,
   Plus,
   AlertCircle,
+  Database,
+  RefreshCw,
 } from "lucide-react";
 import { WorkspaceLayout } from "~/app/_components/WorkspaceLayout";
 import { useWorkspacePreferences } from "~/app/_components/workspacePreferencesContext";
@@ -756,7 +758,23 @@ export default function CalendarPage() {
               </div>
             </div>
           ) : (
-            <div className="transition-all duration-200">
+            <div className="transition-all duration-200 space-y-4">
+              {calendarData?.fromCache && (
+                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium animate-fade-in">
+                  <Database className="size-3.5 shrink-0" />
+                  <span>
+                    <strong>Showing cached data.</strong> Google API is currently unreachable — displaying your last synced events. Changes may not reflect.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void refetch()}
+                    className="ml-auto shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 font-semibold transition-colors text-[11px]"
+                  >
+                    <RefreshCw className="size-3" />
+                    Retry
+                  </button>
+                </div>
+              )}
               {viewMode === "month" && (
                 <MonthView
                   currentDate={currentDate}

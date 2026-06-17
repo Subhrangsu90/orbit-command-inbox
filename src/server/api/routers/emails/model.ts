@@ -44,6 +44,7 @@ export const listEmailsOutputModel = z.object({
   messages: z.array(emailDetailsModel),
   nextPageToken: z.string().optional(),
   notConnected: z.boolean().optional(),
+  fromCache: z.boolean().optional(),
 });
 
 export const sendEmailInputModel = z.object({

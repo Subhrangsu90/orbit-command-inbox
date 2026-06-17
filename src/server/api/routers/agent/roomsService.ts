@@ -132,7 +132,7 @@ export const roomsService = {
     // Automatically generate title from first user message
     if (history.length === 1) {
       let newTitle = content.trim();
-      const llm = createGeminiChatClient() ?? createOpenAIChatClient();
+      const llm = createOpenAIChatClient() ?? createGeminiChatClient();
       if (llm) {
         try {
           const prompt = `You are a chat title generator. Generate a very short (2 to 4 words), concise, and professional title summarizing the following user query. Do NOT use quotes, do NOT explain, and respond ONLY with the title.

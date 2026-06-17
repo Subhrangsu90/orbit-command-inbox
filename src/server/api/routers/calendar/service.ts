@@ -59,7 +59,39 @@ export const calendarService = {
           notConnected: true,
         };
       }
-      throw new Error("Failed to fetch calendar events.");
+
+      // Fallback: serve cached events from the local Corsair sync DB
+      console.warn("[Calendar] API failed — falling back to local DB cache.");
+      try {
+        const localRows = await client.googlecalendar.db.events.search({
+          limit: input.maxResults ?? 50,
+          offset: 0,
+        } as any);
+
+        if (!localRows || localRows.length === 0) {
+          return { events: [], fromCache: true };
+        }
+
+        const timeMin = input.timeMin ? new Date(input.timeMin).getTime() : 0;
+        const events = localRows
+          .map((row) => row.data as any)
+          .filter((ev) => {
+            const start = ev?.start?.dateTime || ev?.start?.date;
+            if (!start) return false;
+            return new Date(start).getTime() >= timeMin;
+          })
+          .sort((a: any, b: any) => {
+            const aTime = new Date(a.start?.dateTime || a.start?.date || 0).getTime();
+            const bTime = new Date(b.start?.dateTime || b.start?.date || 0).getTime();
+            return aTime - bTime;
+          })
+          .slice(0, input.maxResults ?? 50);
+
+        return { events, fromCache: true };
+      } catch (dbError) {
+        console.error("[Calendar] Local DB fallback also failed:", dbError);
+        return { events: [], fromCache: true };
+      }
     }
   },
 

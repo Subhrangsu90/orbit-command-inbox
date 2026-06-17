@@ -10,6 +10,7 @@ export const listEventsInputModel = z.object({
 export const listEventsOutputModel = z.object({
   events: z.array(z.any()),
   notConnected: z.boolean().optional(),
+  fromCache: z.boolean().optional(),
 });
 
 export const listCalendarsOutputModel = z.object({

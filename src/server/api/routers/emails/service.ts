@@ -375,9 +375,54 @@ export const emailsService = {
       console.error("Error listing Gmail messages:", error);
       if (isNotConnectedError(error))
         return { messages: [], notConnected: true };
-      throw new Error("Failed to fetch Gmail messages.");
+
+      // Fallback: serve cached messages from the local Corsair sync DB
+      console.warn("[Gmail] API failed — falling back to local DB cache.");
+      try {
+        const localRows = await client.gmail.db.messages.search({
+          limit: input.maxResults ?? 20,
+          offset: 0,
+        } as any);
+
+        if (!localRows || localRows.length === 0) {
+          return { messages: [], fromCache: true };
+        }
+
+        const mailboxLabelMap: Record<string, string> = {
+          inbox: "INBOX",
+          starred: "STARRED",
+          sent: "SENT",
+          drafts: "DRAFT",
+        };
+        const targetLabel = mailboxLabelMap[input.mailbox ?? "inbox"];
+
+        const filtered = localRows
+          .filter((row) => {
+            const data = row.data as any;
+            const labels: string[] = data?.labelIds ?? [];
+            return labels.includes(targetLabel ?? "INBOX");
+          })
+          .slice(0, input.maxResults ?? 20);
+
+        const messages = filtered.map((row) => {
+          const data = row.data as any;
+          const normalized = normalizeMessage(data, row.entity_id);
+          const { messageId: _m, replyTo: _r, body: _b, contentType: _ct, ...summary } = normalized;
+          return {
+            ...summary,
+            priority: "medium" as const,
+            priorityReason: "Cached (offline mode)",
+          };
+        });
+
+        return { messages, fromCache: true };
+      } catch (dbError) {
+        console.error("[Gmail] Local DB fallback also failed:", dbError);
+        return { messages: [], fromCache: true };
+      }
     }
   },
+
 
   async get(tenantId: string, input: { id: string }) {
     await ensureCorsairConfigured();

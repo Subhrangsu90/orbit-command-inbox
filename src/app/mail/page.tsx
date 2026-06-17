@@ -545,7 +545,7 @@ function MailboxHome() {
         setSelectedIndex((prev) =>
           Math.max(prev - 0.5, 0) ? Math.max(prev - 1, 0) : 0,
         );
-      } else if (matchShortcut(e, preferences.shortcutReadEmail || "enter")) {
+      } else if (matchShortcut(e, preferences.shortcutReadEmail || "o")) {
         e.preventDefault();
         if (emails[selectedIndex]) {
           setSelectedEmailId(emails[selectedIndex].id ?? null);
@@ -884,6 +884,24 @@ function MailboxHome() {
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Offline / Cache Banner */}
+            {emailsData?.fromCache && (
+              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium animate-fade-in">
+                <Database className="size-3.5 shrink-0" />
+                <span>
+                  <strong>Showing cached data.</strong> Google API is currently unreachable — displaying your last synced emails. Changes may not reflect.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void emailsQuery.refetch()}
+                  className="ml-auto shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 font-semibold transition-colors text-[11px]"
+                >
+                  <RefreshCw className="size-3" />
+                  Retry
+                </button>
               </div>
             )}
 
