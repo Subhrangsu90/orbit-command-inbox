@@ -20,7 +20,6 @@ import {
   Edit2,
   X,
   Mic,
-  ChevronDown,
   Check,
   FileText,
   Clock,
@@ -28,6 +27,7 @@ import {
   Users,
   ExternalLink,
 } from "lucide-react";
+
 import { WorkspaceLayout } from "~/app/_components/WorkspaceLayout";
 import { api } from "~/trpc/react";
 import { Button } from "~/app/_components/ui/button";
@@ -293,10 +293,6 @@ function ChatContainer() {
               </Button>
             ) : (
               <>
-                <div className="bg-surface-container hover:bg-surface-container-high border-outline-variant/40 text-on-surface-variant flex h-8 cursor-pointer items-center gap-1 rounded-full border px-3.5 py-1 text-[11px] font-semibold transition select-none">
-                  <span>GPT-4o-mini</span>
-                  <ChevronDown className="text-on-surface-variant/60 size-3" />
-                </div>
                 <button
                   type="button"
                   className="text-on-surface-variant hover:bg-surface-container-high flex size-9 items-center justify-center rounded-full transition"
