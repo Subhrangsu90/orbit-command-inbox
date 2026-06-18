@@ -227,7 +227,7 @@ export const calendarService = {
       };
     } catch (error) {
       console.error("Error creating calendar event:", error);
-      throw new Error("Failed to create calendar event.");
+      handleCalendarError(error, "Failed to create calendar event.");
     }
   },
 
@@ -290,7 +290,7 @@ export const calendarService = {
       };
     } catch (error) {
       console.error("Error updating calendar event:", error);
-      throw new Error("Failed to update calendar event.");
+      handleCalendarError(error, "Failed to update calendar event.");
     }
   },
 
@@ -309,7 +309,7 @@ export const calendarService = {
       };
     } catch (error) {
       console.error("Error deleting calendar event:", error);
-      throw new Error("Failed to delete calendar event.");
+      handleCalendarError(error, "Failed to delete calendar event.");
     }
   },
 
@@ -334,7 +334,7 @@ export const calendarService = {
       return res;
     } catch (error) {
       console.error("Error getting calendar event:", error);
-      throw new Error("Failed to get calendar event.");
+      handleCalendarError(error, "Failed to get calendar event.");
     }
   },
 
@@ -363,7 +363,7 @@ export const calendarService = {
       return res;
     } catch (error) {
       console.error("Error getting calendar availability:", error);
-      throw new Error("Failed to get calendar availability.");
+      handleCalendarError(error, "Failed to get calendar availability.");
     }
   },
 
@@ -434,4 +434,18 @@ function serializeLocalEntity(row: {
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
   };
+}
+
+function handleCalendarError(error: any, fallbackMessage: string): never {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (
+    msg.includes("Account not found") ||
+    msg.includes("credentials") ||
+    msg.includes("token")
+  ) {
+    throw new Error(
+      "Google Calendar account is not connected. Please connect your Google Calendar in Settings first."
+    );
+  }
+  throw new Error(fallbackMessage);
 }
