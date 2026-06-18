@@ -153,6 +153,7 @@ export default function SettingsPage() {
   const {
     data: connections,
     isLoading: isLoadingConnections,
+    error: connectionsError,
     refetch,
   } = api.integrations.getStatus.useQuery();
   const disconnectGmailMutation = api.integrations.disconnectGmail.useMutation({
@@ -443,6 +444,11 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-3 py-6 text-xs text-on-surface-variant">
                   <span className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   Checking connections...
+                </div>
+              ) : connectionsError ? (
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-error/10 border border-error/20 text-error text-sm font-medium">
+                  <AlertCircle className="size-4 shrink-0" />
+                  Failed to load integration status: {connectionsError.message ?? 'Unknown error'}
                 </div>
               ) : (
                 <div className="space-y-0">

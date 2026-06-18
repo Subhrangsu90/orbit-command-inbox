@@ -14,7 +14,11 @@ export const integrationsService = {
       const gmailToken = await client.gmail.keys.get_refresh_token();
       gmailConnected = Boolean(gmailToken);
     } catch (error) {
-      console.error("[integrations.getStatus gmail error]", error);
+      // "Account not found" is expected when user hasn't connected yet
+      const msg = error instanceof Error ? error.message : "";
+      if (!msg.includes("Account not found")) {
+        console.error("[integrations.getStatus gmail error]", error);
+      }
       gmailConnected = false;
     }
 
@@ -23,7 +27,11 @@ export const integrationsService = {
         await client.googlecalendar.keys.get_refresh_token();
       calendarConnected = Boolean(calendarToken);
     } catch (error) {
-      console.error("[integrations.getStatus calendar error]", error);
+      // "Account not found" is expected when user hasn't connected yet
+      const msg = error instanceof Error ? error.message : "";
+      if (!msg.includes("Account not found")) {
+        console.error("[integrations.getStatus calendar error]", error);
+      }
       calendarConnected = false;
     }
 
