@@ -1,9 +1,17 @@
+import { type Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "~/app/_components/Logo";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms of Service for Tacta Workspace.",
+  description: "Terms of Service for Tacta Workspace. Review the terms, rules, and agreements for using the Tacta command center.",
+  alternates: {
+    canonical: "https://www.tacta.online/terms",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function TermsPage() {
