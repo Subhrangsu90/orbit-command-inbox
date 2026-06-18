@@ -6,8 +6,8 @@ export function Footer() {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
         <p>© {new Date().getFullYear()} Tacta Workspace. All rights reserved.</p>
         <div className="flex gap-4">
-          <a href="#" className="hover:underline hover:text-primary transition">Terms of Service</a>
-          <a href="#" className="hover:underline hover:text-primary transition">Privacy Policy</a>
+          <a href="/terms" className="hover:underline hover:text-primary transition">Terms of Service</a>
+          <a href="/privacy" className="hover:underline hover:text-primary transition">Privacy Policy</a>
         </div>
       </div>
     </footer>

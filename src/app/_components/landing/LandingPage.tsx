@@ -402,7 +402,7 @@ function Footer() {
           {[
             { title: "Product",  links: [["Features","#features"],["Pricing","#pricing"],["Dashboard","/chat"]] },
             { title: "Company",  links: [["About","#"],["Blog","#"],["Careers","#"]] },
-            { title: "Legal",    links: [["Privacy","#"],["Terms","#"],["Cookies","#"]] },
+            { title: "Legal",    links: [["Privacy","/privacy"],["Terms","/terms"],["Cookies","#"]] },
           ].map((col) => (
             <div key={col.title} className="lp-footer__col">
               <span className="lp-footer__col-title">{col.title}</span>

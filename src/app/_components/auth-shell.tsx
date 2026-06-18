@@ -71,7 +71,15 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         </div>
         
         <p className="text-outline mt-6 text-center text-[10px] leading-4 opacity-80">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
+          By continuing, you agree to our{" "}
+          <Link href="/terms" className="underline hover:text-primary">
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline hover:text-primary">
+            Privacy Policy
+          </Link>
+          .
         </p>
       </section>
     </main>
