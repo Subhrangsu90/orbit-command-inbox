@@ -21,7 +21,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="relative w-full py-6">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3.5 py-1.5 text-xs text-[#eaddff]">
             <Sparkles className="size-3.5" />
-            Your workday, orbitally composed
+            Your workday, tactically composed
           </div>
           <h2 className="font-serif text-4xl leading-[1.15] font-semibold tracking-[-0.03em] xl:text-5xl">
             Fewer clicks.

@@ -8,8 +8,8 @@ import { WorkspacePreferencesProvider } from "~/app/_components/workspacePrefere
 
 export const metadata: Metadata = {
   title: {
-    default: "Orbit",
-    template: "%s | Orbit",
+    default: "Tacta",
+    template: "%s | Tacta",
   },
   description: "A command center for Gmail and Google Calendar.",
   icons: [{ rel: "icon", url: "/icon.svg" }],

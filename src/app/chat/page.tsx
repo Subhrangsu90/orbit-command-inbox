@@ -277,7 +277,7 @@ function ChatContainer() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={chatInRoomMutation.isPending}
-            placeholder="Ask Orbit anything..."
+            placeholder="Ask Tacta anything..."
             className="text-on-surface text-body-md placeholder:text-on-surface-variant/40 flex-grow border-none bg-transparent px-3 py-2 outline-none"
           />
 
@@ -405,7 +405,7 @@ function ChatContainer() {
               ) : (
                 <div className="flex min-w-0 items-center gap-2.5">
                   <h2 className="text-title-md text-on-surface max-w-xs truncate font-sans font-semibold sm:max-w-md md:max-w-lg">
-                    {activeRoom?.title ?? "Orbit Copilot"}
+                    {activeRoom?.title ?? "Tacta Copilot"}
                   </h2>
                   {activeRoom && (
                     <div className="flex shrink-0 items-center gap-0.5">
@@ -493,7 +493,7 @@ function ChatContainer() {
                             : "bg-primary text-on-primary"
                         } ${isUser ? "order-2" : ""}`}
                       >
-                        {isUser ? "U" : "O"}
+                        {isUser ? "U" : "T"}
                       </div>
 
                       {/* Bubble */}
@@ -532,14 +532,14 @@ function ChatContainer() {
                   createRoomMutation.isPending) && (
                   <div className="mr-auto flex max-w-[80%] items-start gap-4">
                     <div className="bg-primary text-on-primary flex size-9 shrink-0 animate-pulse items-center justify-center rounded-full shadow-xs">
-                      O
+                      T
                     </div>
                     <div className="bg-surface-container-highest text-on-surface border-outline-variant flex items-center gap-3 rounded-3xl rounded-tl-none border px-5 py-3.5">
                       <RefreshCw className="text-primary size-4 animate-spin" />
                       <span className="text-body-md text-on-surface-variant animate-pulse font-medium">
                         {createRoomMutation.isPending
                           ? "Creating conversation..."
-                          : "Orbit Agent is executing actions..."}
+                          : "Tacta Agent is executing actions..."}
                       </span>
                     </div>
                   </div>

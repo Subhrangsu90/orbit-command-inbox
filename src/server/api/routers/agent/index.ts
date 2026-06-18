@@ -70,9 +70,9 @@ export const agentRouter = createTRPCRouter({
         method: "POST",
         path: "/agent/chat",
         tags: TAGS,
-        summary: "Chat with Orbit Agent (Stateless)",
+        summary: "Chat with Tacta Agent (Stateless)",
         description:
-          "Sends message thread to Orbit Agent to trigger actions on email or calendar.",
+          "Sends message thread to Tacta Agent to trigger actions on email or calendar.",
       },
     })
     .input(

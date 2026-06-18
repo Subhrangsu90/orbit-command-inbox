@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1781293310414,
-      "tag": "0000_colossal_ben_grimm",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1781300995209,
-      "tag": "0001_noisy_garia",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1781304245197,
-      "tag": "0002_married_the_stranger",
+      "when": 1781798250188,
+      "tag": "0000_rainy_ben_parker",
       "breakpoints": true
     }
   ]

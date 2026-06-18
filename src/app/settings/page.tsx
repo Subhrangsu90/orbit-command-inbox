@@ -227,7 +227,7 @@ export default function SettingsPage() {
             <div>
               <SectionHeader
                 title="Profile"
-                description="Your identity across the Orbit workspace."
+                description="Your identity across the Tacta workspace."
               />
               <div className="flex items-center gap-5 py-4 border-b border-outline-variant/20">
                 {user.image ? (
@@ -305,7 +305,7 @@ export default function SettingsPage() {
             <div>
               <SectionHeader
                 title="Display"
-                description="Customize how Orbit looks and feels."
+                description="Customize how Tacta looks and feels."
               />
               <div className="space-y-0">
                 <SettingRow
@@ -550,7 +550,7 @@ export default function SettingsPage() {
             {/* Auto-sync note */}
             <div className="flex items-start gap-2 text-xs text-on-surface-variant">
               <span className="material-symbols-outlined text-sm leading-none mt-0.5 shrink-0">info</span>
-              <p>Connected services will auto-sync in real-time. Disconnecting revokes Orbit's access without affecting your Google account.</p>
+              <p>Connected services will auto-sync in real-time. Disconnecting revokes Tacta's access without affecting your Google account.</p>
             </div>
           </div>
         )}

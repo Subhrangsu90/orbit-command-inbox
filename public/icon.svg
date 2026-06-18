@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Background -->
+  <rect width="512" height="512" rx="120" fill="#1a0a2e"/>
+
+  <!-- Stylized T mark: thick horizontal bar + vertical stem, slightly offset for visual weight -->
+  <!-- Horizontal bar -->
+  <rect x="112" y="148" width="288" height="56" rx="12" fill="#ffffff"/>
+  <!-- Vertical stem -->
+  <rect x="228" y="148" width="56" height="232" rx="12" fill="#ffffff"/>
+
+  <!-- Tactile accent: small square dot at the stem baseline, subtle off-white -->
+  <rect x="228" y="364" width="56" height="10" rx="5" fill="#a78bfa"/>
+</svg>

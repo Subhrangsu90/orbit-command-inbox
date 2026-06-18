@@ -85,8 +85,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         </p>
         <h1 className="text-on-surface font-serif text-2xl font-bold leading-tight">
           {isSignup
-            ? "Create your Orbit workspace"
-            : "Sign in to Orbit"}
+            ? "Create your Tacta workspace"
+            : "Sign in to Tacta"}
         </h1>
         <p className="text-on-surface-variant mt-1.5 text-xs leading-5">
           {isSignup
@@ -214,7 +214,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       </form>
 
       <p className="text-on-surface-variant mt-5 text-center text-xs">
-        {isSignup ? "Already have an account?" : "New to Orbit?"}{" "}
+        {isSignup ? "Already have an account?" : "New to Tacta?"}{" "}
         <Link
           href={isSignup ? "/login" : "/signup"}
           className="text-primary font-bold underline-offset-4 hover:underline"

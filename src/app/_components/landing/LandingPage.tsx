@@ -27,7 +27,7 @@ function useCountUp(target: number, duration = 1600, active = false) {
    Data
 ───────────────────────────────────────────── */
 const FEATURES = [
-  { icon: "auto_awesome",   title: "AI-Powered Inbox",    desc: "Orbit reads, summarises and prioritises every email so you focus on what actually matters." },
+  { icon: "auto_awesome",   title: "AI-Powered Inbox",    desc: "Tacta reads, summarises and prioritises every email so you focus on what actually matters." },
   { icon: "calendar_month", title: "Smart Calendar",      desc: "Scheduling conflicts, reminders and meeting prep — handled automatically." },
   { icon: "bolt",           title: "Command Centre",      desc: "One shortcut to search every email, event and contact across your entire workspace." },
   { icon: "shield_lock",    title: "Privacy First",       desc: "Minimal OAuth scopes. Your message content is never stored on our servers." },
@@ -36,9 +36,9 @@ const FEATURES = [
 ];
 
 const TESTIMONIALS = [
-  { quote: "Orbit turned my chaotic inbox into a calm command centre. I save at least 2 hours every day.", name: "Sarah Chen",    role: "Product Lead @ Vercel",           initials: "SC" },
+  { quote: "Tacta turned my chaotic inbox into a calm command centre. I save at least 2 hours every day.", name: "Sarah Chen",    role: "Product Lead @ Vercel",           initials: "SC" },
   { quote: "The AI summaries are eerily accurate. I read my emails in 10 minutes instead of an hour.",    name: "Marcus Williams", role: "Founder @ Buildspace",           initials: "MW" },
-  { quote: "Scheduling meetings used to drain me. Orbit's smart calendar just handles it. Love it.",       name: "Priya Kapoor", role: "Engineering Manager @ Stripe",    initials: "PK" },
+  { quote: "Scheduling meetings used to drain me. Tacta's smart calendar just handles it. Love it.",       name: "Priya Kapoor", role: "Engineering Manager @ Stripe",    initials: "PK" },
 ];
 
 const STATS: { value: number; suffix: string; label: string }[] = [
@@ -48,16 +48,12 @@ const STATS: { value: number; suffix: string; label: string }[] = [
 ];
 
 /* ─────────────────────────────────────────────
-   Animated orbit rings (decorative)
+   Clean flat tactile grid background
 ───────────────────────────────────────────── */
-function OrbitRings() {
+function TactileBg() {
   return (
     <div className="lp-rings" aria-hidden>
-      <div className="lp-ring lp-ring-1" />
-      <div className="lp-ring lp-ring-2" />
-      <div className="lp-ring lp-ring-3" />
-      <div className="lp-glow lp-glow-1" />
-      <div className="lp-glow lp-glow-2" />
+      <div className="lp-grid-pattern" />
     </div>
   );
 }
@@ -101,7 +97,7 @@ function Navbar() {
 function Hero() {
   return (
     <section className="lp-hero">
-      <OrbitRings />
+      <TactileBg />
       <div className="lp-wrap lp-hero__inner">
         {/* Badge */}
         <div className="lp-badge">
@@ -116,13 +112,13 @@ function Hero() {
         </h1>
 
         <p className="lp-hero__sub">
-          Orbit is your AI-powered command centre for Google Workspace. Read smarter,
+          Tacta is your AI-powered command centre for Google Workspace. Read smarter,
           schedule faster, and take back hours of your day — every single day.
         </p>
 
         {/* CTAs */}
         <div className="lp-hero__ctas">
-          <Link href="/login" className="lp-btn lp-btn-filled lp-btn-lg lp-btn-glow">
+          <Link href="/login" className="lp-btn lp-btn-filled lp-btn-lg">
             <span className="material-symbols-outlined" aria-hidden>rocket_launch</span>
             Start for free
           </Link>
@@ -149,7 +145,7 @@ function Hero() {
 function AppMockup() {
   const MAILS = [
     { from: "Sarah Chen",  subj: "Q3 roadmap review",     time: "9:41 AM",   unread: true,  tag: "Urgent" },
-    { from: "GitHub",      subj: "New PR: feat/orbit-ai", time: "8:12 AM",   unread: true,  tag: "Dev" },
+    { from: "GitHub",      subj: "New PR: feat/tacta-ai", time: "8:12 AM",   unread: true,  tag: "Dev" },
     { from: "Vercel",      subj: "Deployment successful", time: "7:00 AM",   unread: false, tag: "" },
     { from: "Marcus W.",   subj: "Coffee next week?",     time: "Yesterday", unread: false, tag: "" },
     { from: "Stripe",      subj: "Invoice #4821 paid",    time: "Mon",       unread: false, tag: "" },
@@ -194,7 +190,7 @@ function AppMockup() {
           <div className="lp-mockup__detail-avatar">S</div>
           <div>
             <p className="lp-mockup__detail-name">Sarah Chen</p>
-            <p className="lp-mockup__detail-to">to me, team@orbit.app</p>
+            <p className="lp-mockup__detail-to">to me, team@tacta.online</p>
           </div>
         </div>
         <p className="lp-mockup__detail-subject">Q3 roadmap review</p>
@@ -357,7 +353,7 @@ function Pricing() {
               </ul>
               <Link
                 href="/login"
-                className={`lp-btn lp-btn-lg lp-btn-full ${p.pro ? "lp-btn-filled lp-btn-glow" : "lp-btn-outlined"}`}
+                className={`lp-btn lp-btn-lg lp-btn-full ${p.pro ? "lp-btn-filled" : "lp-btn-outlined"}`}
               >
                 {p.cta}
               </Link>
@@ -375,16 +371,16 @@ function Pricing() {
 function CtaBanner() {
   return (
     <section className="lp-cta">
-      <OrbitRings />
+      <TactileBg />
       <div className="lp-wrap lp-cta__inner">
-        <Logo size={48} textColorClass="text-white" />
+        <Logo size={48} showText={true} />
         <h2 className="lp-cta__title">Ready to take command<br />of your inbox?</h2>
         <p className="lp-cta__sub">
-          Join thousands of professionals who start their morning with Orbit instead of inbox dread.
+          Join thousands of professionals who start their morning with Tacta instead of inbox dread.
         </p>
         <Link href="/login" className="lp-btn lp-btn-surface lp-btn-lg">
           <span className="material-symbols-outlined" aria-hidden>rocket_launch</span>
-          Launch Orbit — it&apos;s free
+          Launch Tacta — it&apos;s free
         </Link>
       </div>
     </section>
@@ -418,7 +414,7 @@ function Footer() {
         </div>
       </div>
       <div className="lp-wrap lp-footer__bottom">
-        <span>© {new Date().getFullYear()} Orbit. All rights reserved.</span>
+        <span>© {new Date().getFullYear()} Tacta. All rights reserved.</span>
         <span>Made with ❤️ for productivity nerds</span>
       </div>
     </footer>
@@ -465,15 +461,9 @@ const CSS = `
   padding: 0 var(--space-gutter);
 }
 
-/* ── Gradient headline ── */
+/* ── Minimalist Headline ── */
 .lp-gradient-text {
-  background: linear-gradient(135deg,
-    var(--color-primary) 0%,
-    var(--color-surface-tint) 50%,
-    var(--color-tertiary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-primary);
 }
 
 /* ── Buttons ── */
@@ -496,12 +486,9 @@ const CSS = `
 .lp-btn-filled {
   background: var(--color-primary);
   color: var(--color-on-primary);
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--color-primary) 40%, transparent);
 }
 .lp-btn-filled:hover {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px color-mix(in srgb, var(--color-primary) 45%, transparent);
+  filter: brightness(1.05);
 }
 .lp-btn-tonal {
   background: var(--color-secondary-container);
@@ -509,7 +496,6 @@ const CSS = `
 }
 .lp-btn-tonal:hover {
   filter: brightness(0.96);
-  transform: translateY(-1px);
 }
 .lp-btn-ghost {
   background: transparent;
@@ -527,16 +513,14 @@ const CSS = `
 .lp-btn-outlined:hover {
   background: var(--color-primary-container);
   border-color: var(--color-primary);
-  transform: translateY(-1px);
 }
 .lp-btn-surface {
   background: var(--color-surface-container-lowest);
   color: var(--color-primary);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+  border: 1px solid var(--color-outline-variant);
 }
 .lp-btn-surface:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.24);
+  background: var(--color-surface-container-low);
 }
 .lp-btn-lg {
   padding: 0.8125rem 1.875rem;
@@ -545,14 +529,6 @@ const CSS = `
 .lp-btn-full {
   width: 100%;
   justify-content: center;
-}
-.lp-btn-glow {
-  animation: lp-glow-pulse 2.8s ease-in-out infinite;
-}
-@keyframes lp-glow-pulse {
-  0%,100% { box-shadow: 0 2px 12px color-mix(in srgb, var(--color-primary) 40%, transparent); }
-  50%      { box-shadow: 0 2px 12px color-mix(in srgb, var(--color-primary) 40%, transparent),
-                         0 0 28px color-mix(in srgb, var(--color-primary) 28%, transparent); }
 }
 
 /* ── Navbar ── */
@@ -598,49 +574,21 @@ const CSS = `
   margin-left: var(--space-lg);
 }
 
-/* ── Animated rings ── */
+/* ── Clean flat tactile grid background ── */
 .lp-rings {
   pointer-events: none;
   position: absolute;
   inset: 0;
   overflow: hidden;
+  opacity: 0.15;
 }
-.lp-ring {
+.lp-grid-pattern {
   position: absolute;
-  border-radius: 50%;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, transparent);
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-}
-.lp-ring-1 { width: 380px; height: 380px; animation: lp-spin 22s linear infinite; }
-.lp-ring-2 { width: 660px; height: 660px; animation: lp-spin 36s linear infinite reverse; }
-.lp-ring-3 { width: 980px; height: 980px; animation: lp-spin 55s linear infinite; border-style: dashed; }
-@keyframes lp-spin {
-  from { transform: translate(-50%,-50%) rotate(0deg); }
-  to   { transform: translate(-50%,-50%) rotate(360deg); }
-}
-.lp-glow {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.45;
-}
-.lp-glow-1 {
-  width: 480px; height: 480px;
-  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
-  top: -160px; left: -80px;
-  animation: lp-float-blob 9s ease-in-out infinite;
-}
-.lp-glow-2 {
-  width: 360px; height: 360px;
-  background: color-mix(in srgb, var(--color-tertiary) 22%, transparent);
-  bottom: -80px; right: -60px;
-  animation: lp-float-blob 11s 2s ease-in-out infinite reverse;
-}
-@keyframes lp-float-blob {
-  0%,100% { transform: translate(0,0); }
-  40%     { transform: translate(24px,-18px); }
-  70%     { transform: translate(-16px, 12px); }
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, var(--color-outline-variant) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-outline-variant) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 /* ── Hero ── */
@@ -717,11 +665,7 @@ const CSS = `
   margin-top: 4.5rem;
   width: 100%;
   max-width: 960px;
-  animation: lp-up 0.7s 0.4s ease both, lp-float 6s 1.1s ease-in-out infinite;
-}
-@keyframes lp-float {
-  0%,100% { transform: translateY(0); }
-  50%     { transform: translateY(-10px); }
+  animation: lp-up 0.55s 0.4s ease both;
 }
 .lp-mockup {
   display: grid;
@@ -729,7 +673,7 @@ const CSS = `
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--color-outline-variant);
-  box-shadow: 0 32px 72px color-mix(in srgb, var(--color-primary) 18%, rgba(0,0,0,0.12));
+  box-shadow: 0 20px 48px rgba(0,0,0,0.06);
   background: var(--color-surface);
   height: 360px;
 }
@@ -826,7 +770,7 @@ const CSS = `
 .lp-mockup__detail-header { display: flex; align-items: center; gap: var(--space-sm); }
 .lp-mockup__detail-avatar {
   width: 34px; height: 34px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-surface-tint));
+  background: var(--color-primary);
   color: var(--color-on-primary);
   font-size: 0.875rem; font-weight: 700;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -910,12 +854,10 @@ const CSS = `
   background: var(--color-surface-container-lowest);
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-outline-variant);
-  transition: transform var(--duration-base) var(--ease-standard),
-              box-shadow var(--duration-base) var(--ease-standard);
+  transition: all var(--duration-base) var(--ease-standard);
 }
 .lp-card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-popover);
+  border-color: var(--color-primary);
 }
 
 /* ── Features ── */
@@ -930,16 +872,6 @@ const CSS = `
   overflow: hidden;
   cursor: default;
 }
-.lp-feature::before {
-  content: '';
-  position: absolute; inset: 0; border-radius: var(--radius-xl);
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--color-primary) 6%, transparent),
-    transparent 60%);
-  opacity: 0;
-  transition: opacity var(--duration-base) var(--ease-standard);
-}
-.lp-feature:hover::before { opacity: 1; }
 .lp-feature__icon {
   width: 44px; height: 44px;
   border-radius: var(--radius-lg);
@@ -953,7 +885,6 @@ const CSS = `
 .lp-feature:hover .lp-feature__icon {
   background: var(--color-primary);
   color: var(--color-on-primary);
-  transform: scale(1.08);
 }
 .lp-feature__title {
   font-size: var(--text-title-lg-size);
@@ -971,10 +902,10 @@ const CSS = `
 .lp-feature__arrow {
   position: absolute; bottom: var(--space-lg); right: var(--space-lg);
   font-size: 16px; color: var(--color-primary);
-  opacity: 0; transform: translate(-4px, 4px);
+  opacity: 0;
   transition: all var(--duration-fast) var(--ease-standard);
 }
-.lp-feature:hover .lp-feature__arrow { opacity: 1; transform: translate(0,0); }
+.lp-feature:hover .lp-feature__arrow { opacity: 1; }
 
 /* ── Testimonials ── */
 .lp-testimonials__grid {
@@ -999,7 +930,7 @@ const CSS = `
 .lp-testimonial__author { display: flex; align-items: center; gap: var(--space-md); }
 .lp-testimonial__avatar {
   width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-surface-tint));
+  background: var(--color-primary);
   color: var(--color-on-primary);
   font-size: var(--text-label-md-size); font-weight: 700;
   display: flex; align-items: center; justify-content: center;
@@ -1022,10 +953,8 @@ const CSS = `
   position: relative;
 }
 .lp-plan--pro {
-  background: var(--color-primary);
-  border-color: transparent;
-  transform: scale(1.04);
-  box-shadow: 0 20px 56px color-mix(in srgb, var(--color-primary) 38%, transparent);
+  background: var(--color-surface-container-high);
+  border: 2px solid var(--color-primary);
 }
 .lp-plan__badge {
   position: absolute; top: -0.6875rem; left: 50%; transform: translateX(-50%);
@@ -1040,24 +969,24 @@ const CSS = `
   font-size: var(--text-label-lg-size); font-weight: 600; text-transform: uppercase;
   letter-spacing: 0.08em; color: var(--color-on-surface-variant); margin: 0 0 0.5rem;
 }
-.lp-plan--pro .lp-plan__name { color: color-mix(in srgb, var(--color-on-primary) 75%, transparent); }
+.lp-plan--pro .lp-plan__name { color: var(--color-primary); }
 .lp-plan__price {
   font-family: var(--font-serif);
   font-size: 2.75rem; font-weight: 700; letter-spacing: -0.04em;
   color: var(--color-on-surface); line-height: 1; margin: 0 0 0.75rem;
 }
-.lp-plan--pro .lp-plan__price { color: var(--color-on-primary); }
+.lp-plan--pro .lp-plan__price { color: var(--color-on-surface); }
 .lp-plan__price span {
   font-family: var(--font-sans);
   font-size: var(--text-body-lg-size); font-weight: 500;
   color: var(--color-outline); vertical-align: super;
 }
-.lp-plan--pro .lp-plan__price span { color: color-mix(in srgb, var(--color-on-primary) 60%, transparent); }
+.lp-plan--pro .lp-plan__price span { color: var(--color-outline); }
 .lp-plan__desc {
   font-size: var(--text-body-md-size); color: var(--color-on-surface-variant);
   margin: 0 0 var(--space-xl); line-height: 1.65;
 }
-.lp-plan--pro .lp-plan__desc { color: color-mix(in srgb, var(--color-on-primary) 80%, transparent); }
+.lp-plan--pro .lp-plan__desc { color: var(--color-on-surface-variant); }
 .lp-plan__list {
   list-style: none; margin: 0 0 var(--space-xl); padding: 0;
   display: flex; flex-direction: column; gap: 0.625rem;
@@ -1066,14 +995,16 @@ const CSS = `
   display: flex; align-items: center; gap: var(--space-sm);
   font-size: var(--text-body-md-size); color: var(--color-on-surface);
 }
-.lp-plan--pro .lp-plan__list li { color: var(--color-on-primary); }
+.lp-plan--pro .lp-plan__list li { color: var(--color-on-surface); }
 .lp-plan__list .material-symbols-outlined { font-size: 16px; color: var(--color-primary); }
-.lp-plan--pro .lp-plan__list .material-symbols-outlined { color: color-mix(in srgb, var(--color-on-primary) 90%, transparent); }
+.lp-plan--pro .lp-plan__list .material-symbols-outlined { color: var(--color-primary); }
 
 /* ── CTA Banner ── */
 .lp-cta {
   position: relative;
-  background: linear-gradient(140deg, #1e1a2e, var(--color-primary-container), #1e1a2e);
+  background: var(--color-surface-container-high);
+  border-top: 1px solid var(--color-outline-variant);
+  border-bottom: 1px solid var(--color-outline-variant);
   padding: 7rem 0;
   overflow: hidden;
 }
@@ -1085,12 +1016,12 @@ const CSS = `
   font-family: var(--font-serif);
   font-size: clamp(1.875rem, 5vw, 3.25rem);
   font-weight: 700; letter-spacing: -0.03em; line-height: 1.15;
-  color: var(--color-inverse-on-surface);
+  color: var(--color-on-surface);
   margin: 0;
 }
 .lp-cta__sub {
   font-size: var(--text-body-lg-size);
-  color: var(--color-inverse-primary);
+  color: var(--color-on-surface-variant);
   max-width: 500px; line-height: 1.75; margin: 0;
 }
 

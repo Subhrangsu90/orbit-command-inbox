@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>Orbit Command Inbox API Reference</title>
+        <title>Tacta Workspace API Reference</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <style>

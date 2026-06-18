@@ -16,44 +16,27 @@ export function Logo({ className = "", size = 36, showText = true, textColorClas
         viewBox="0 0 40 40"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0 transition-transform duration-500 hover:rotate-90"
+        className="shrink-0"
       >
-        {/* Core star/sphere */}
-        <circle cx="20" cy="20" r="6" className="fill-primary" />
+        {/* Rounded flat container */}
+        <rect width="40" height="40" rx="10" className="fill-primary" />
         
-        {/* Orbit Ring 1 (Inner) */}
-        <circle
-          cx="20"
-          cy="20"
-          r="11"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          className="text-primary/20"
-          strokeDasharray="4 2"
-        />
-
-        {/* Orbit Ring 2 (Outer) */}
-        <circle
-          cx="20"
-          cy="20"
-          r="16"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-primary/40"
-        />
-
-        {/* Outer Orbiting Planet */}
-        <circle cx="32" cy="10" r="3" className="fill-primary animate-pulse" />
+        {/* Stylized letter T */}
+        {/* Horizontal bar */}
+        <rect x="10" y="11" width="20" height="4" rx="2" fill="#ffffff" />
+        {/* Vertical stem */}
+        <rect x="18" y="11" width="4" height="18" rx="2" fill="#ffffff" />
         
-        {/* Inner Orbiting Planet */}
-        <circle cx="9" cy="20" r="2" className="fill-primary-container" />
+        {/* Connected tactile node */}
+        <circle cx="26" cy="22" r="2.5" fill="#ffd8e4" />
       </svg>
 
       {showText && (
-        <span className={`font-serif text-xl font-bold tracking-tight ${textColorClass}`}>
-          Orbit
+        <span className={`font-sans text-xl font-bold tracking-tight ${textColorClass}`}>
+          Tacta
         </span>
       )}
     </div>
   );
 }
+

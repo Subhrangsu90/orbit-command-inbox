@@ -74,7 +74,7 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
     >
       {/* COLUMN 1: Narrow Left Icon Strip (Always visible) */}
       <div className="w-18 border-r border-outline-variant/30 flex flex-col items-center py-6 shrink-0 bg-surface-container-lowest">
-        {/* Orbit Logo at Top */}
+        {/* Tacta Logo at Top */}
         <div className="mb-8 flex h-10 items-center justify-center">
           <button
             type="button"
@@ -228,7 +228,7 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
                   { to: "/mail?mailbox=sent", label: "Sent", icon: "send" },
                   { to: "/mail?mailbox=drafts", label: "Drafts", icon: "draft" },
                 ].map((item) => {
-                  const target = new URL(item.to, "https://orbit.local");
+                  const target = new URL(item.to, "https://tacta.online");
                   const targetMailbox = target.searchParams.get("mailbox");
                   const isActive = pathname.startsWith("/mail") && currentMailbox === targetMailbox;
 

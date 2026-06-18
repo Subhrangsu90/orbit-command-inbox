@@ -5,7 +5,7 @@ import { appRouter } from "~/server/api/root";
 export async function GET(req: NextRequest) {
   const origin = req.nextUrl.origin;
   const openApiDocument = generateOpenApiDocument(appRouter, {
-    title: "Orbit Command Inbox API",
+    title: "Tacta Workspace API",
     version: "1.0.0",
     baseUrl: `${origin}/api`,
   });

@@ -97,7 +97,7 @@ export const agentService = {
       };
     }
     const now = new Date();
-    const systemPrompt = `You are Orbit Assistant, a careful email and calendar copilot inside Orbit Command Inbox.
+    const systemPrompt = `You are Tacta Assistant, a careful email and calendar copilot inside Tacta Workspace.
 
 Current date/time:
 - Date: ${now.toDateString()}

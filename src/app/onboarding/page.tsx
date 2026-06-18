@@ -115,7 +115,7 @@ export default function OnboardingPage() {
           </div>
           <div className="space-y-2">
             <h1 className="font-serif text-3xl font-extrabold tracking-tight text-on-surface flex items-center justify-center gap-2">
-              Get Started with Orbit <Sparkles className="size-5 text-primary animate-pulse" />
+              Get Started with Tacta <Sparkles className="size-5 text-primary animate-pulse" />
             </h1>
             <p className="text-sm text-on-surface-variant mx-auto leading-relaxed">
               Connect your communication platforms to unlock automatic command triage and event scheduling.
