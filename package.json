@@ -1,6 +1,6 @@
 {
   "name": "tacta-workspace",
-  "description": "automated gmail and google calender comand workflow",
+  "description": "Intelligent command center for Gmail and Google Calendar. Automate email triage, smart event scheduling, and command-based tasks.",
   "version": "0.1.0",
   "private": true,
   "type": "module",

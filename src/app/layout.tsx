@@ -8,10 +8,10 @@ import { WorkspacePreferencesProvider } from "~/app/_components/workspacePrefere
 
 export const metadata: Metadata = {
   title: {
-    default: "Tacta",
+    default: "Tacta | Intelligent Workspace Command Center",
     template: "%s | Tacta",
   },
-  description: "A command center for Gmail and Google Calendar.",
+  description: "Intelligent command center for Gmail and Google Calendar. Automate email triage, smart event scheduling, and command-based tasks in one minimalist inbox.",
   icons: [{ rel: "icon", url: "/icon.svg" }],
 };
 

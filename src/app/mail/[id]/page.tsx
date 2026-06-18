@@ -1,7 +1,15 @@
+import { type Metadata } from "next";
 import { Suspense } from "react";
 import { RefreshCw } from "lucide-react";
 import { WorkspaceLayout } from "~/app/_components/WorkspaceLayout";
 import { MailDetailClient } from "./MailDetailClient";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Email Details",
+    description: "Read and manage email conversation details.",
+  };
+}
 
 type Mailbox = "inbox" | "starred" | "sent" | "drafts";
 
