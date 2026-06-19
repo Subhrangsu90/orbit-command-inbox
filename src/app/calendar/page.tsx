@@ -636,11 +636,11 @@ export default function CalendarPage() {
 
   return (
     <WorkspaceLayout wide={true}>
-      <div className="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto">
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 lg:flex-row">
         {/* Main Calendar Content (Left side, flex-1) */}
-        <div className="flex-1 min-w-0 space-y-6">
+        <div className="min-w-0 flex-1 space-y-6">
           {/* Calendar Header Section (Compact Google Calendar Style) */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-outline-variant pb-4">
+          <div className="flex flex-col justify-between gap-4 border-b border-outline-variant pb-4 md:flex-row md:items-center">
             <div className="flex flex-wrap items-center gap-4">
               <div className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-xl border border-primary/20 shadow-sm">
                 <CalendarRange className="size-5 text-primary" />
@@ -651,7 +651,7 @@ export default function CalendarPage() {
             </div>
    
             {isCalConnected && (
-              <div className="flex items-center gap-3 pl-2 border-l border-outline-variant/60">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 border-outline-variant/60 md:gap-3 md:border-l md:pl-2">
                 {/* Navigation Controls */}
                 <div className="flex items-center bg-surface-container rounded-lg border border-outline-variant overflow-hidden">
                   <button
@@ -677,7 +677,7 @@ export default function CalendarPage() {
                 </div>
    
                 {/* View Range Label */}
-                <h3 className="text-sm font-semibold text-on-surface tracking-tight">
+                <h3 className="min-w-0 truncate text-sm font-semibold tracking-tight text-on-surface">
                   {formatRangeLabel(currentDate, viewMode)}
                 </h3>
    
@@ -690,21 +690,21 @@ export default function CalendarPage() {
             )}
 
             {isCalConnected && (
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
                 {/* Search Box */}
-                <div className="relative">
+                <div className="relative min-w-0 flex-1 sm:flex-none">
                   <input
                     type="text"
                     placeholder="Search events..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-36 md:w-48 h-8 pl-8 pr-3 text-2xs bg-surface-container border border-outline-variant rounded-lg text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                    className="h-8 w-full min-w-36 rounded-lg border border-outline-variant bg-surface-container pr-3 pl-8 text-2xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none sm:w-48"
                   />
                   <Search className="absolute left-2.5 top-2.5 size-3.5 text-on-surface-variant/60" />
                 </div>
    
                 {/* View Selector Pills */}
-                <div className="flex bg-surface-container rounded-lg p-0.5 border border-outline-variant">
+                <div className="flex overflow-x-auto rounded-lg border border-outline-variant bg-surface-container p-0.5">
                   {(["day", "week", "month", "year"] as const).map((mode) => (
                     <button
                       key={mode}
@@ -905,7 +905,7 @@ export default function CalendarPage() {
           onClick={() => {
             setIsCreateOpen(true);
           }}
-          className="fixed bottom-6 right-6 z-50 bg-primary text-on-primary hover:bg-primary-container flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 border border-primary/20"
+          className="bg-primary text-on-primary hover:bg-primary-container border-primary/20 fixed right-4 bottom-24 z-50 flex h-14 w-14 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 active:scale-95 md:right-6 md:bottom-6"
           title="New Event"
         >
           <Plus className="size-6" />

@@ -610,7 +610,7 @@ function MailboxHome() {
               <div className="bg-primary/10 text-primary border-primary/20 animate-fade-in flex size-10 items-center justify-center rounded-xl border shadow-sm">
                 <HeaderIcon className="text-primary size-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-on-surface font-serif text-xl font-bold tracking-tight capitalize">
                   {mailboxDisplayName(mailbox)}
                 </h2>
@@ -626,8 +626,34 @@ function MailboxHome() {
               </div>
             </div>
 
+            {/* Mobile Sub-Navigation (Mailbox Selector) */}
+            <div className="scrollbar-none flex w-full items-center gap-2 overflow-x-auto pb-1 md:hidden">
+              {[
+                { id: "inbox", label: "Inbox", icon: "inbox" },
+                { id: "starred", label: "Starred", icon: "star" },
+                { id: "sent", label: "Sent", icon: "send" },
+                { id: "drafts", label: "Drafts", icon: "drafts" },
+              ].map((item) => {
+                const isActive = mailbox === item.id;
+                return (
+                  <Link
+                    key={item.id}
+                    href={`/mail?mailbox=${item.id}`}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
+                      isActive
+                        ? "bg-primary text-on-primary border-primary"
+                        : "bg-surface-container-low border-outline-variant/60 text-on-surface-variant hover:bg-surface-container-high"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[14px] leading-none">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+
             {isGmailConnected && (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {/* Pagination controls */}
                 <div className="bg-surface-container border-outline-variant flex items-center gap-1 rounded-lg border p-0.5">
                   <Button
@@ -1129,7 +1155,7 @@ function MailboxHome() {
                 <X className="size-5" />
               </button>
             </div>
-            <div className="text-on-surface mt-4 space-y-3 text-xs">
+            <div className="text-on-surface mt-4 space-y-3 text-xs overflow-y-auto pr-1">
               <div className="flex items-center justify-between">
                 <span>Navigate Down</span>
                 <kbd className="bg-surface-container-high border-outline-variant rounded border px-1.5 py-0.5 font-semibold shadow-xs">
@@ -1201,7 +1227,7 @@ function MailboxHome() {
             resetCompose();
             setIsComposeOpen(true);
           }}
-          className="bg-primary text-on-primary hover:bg-primary-container border-primary/20 fixed right-6 bottom-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 active:scale-95"
+          className="bg-primary text-on-primary hover:bg-primary-container border-primary/20 fixed right-4 bottom-24 z-50 flex h-14 w-14 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 active:scale-95 md:right-6 md:bottom-6"
           title="Compose Email"
         >
           <Plus className="size-6" />

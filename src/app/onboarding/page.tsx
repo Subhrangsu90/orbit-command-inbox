@@ -104,7 +104,7 @@ export default function OnboardingPage() {
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 size-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 size-96 bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full space-y-8 bg-surface-container/60 backdrop-blur-md border border-outline-variant p-8 md:p-12 rounded-[2rem] shadow-xl relative overflow-hidden transition-all duration-300 hover:shadow-primary/5">
+      <div className="w-full max-w-2xl space-y-8 bg-surface-container/60 backdrop-blur-md border border-outline-variant p-8 md:p-12 rounded-[2rem] shadow-xl relative overflow-hidden transition-all duration-300 hover:shadow-primary/5">
         
         {/* Glow corner accent */}
         <div className="absolute -top-16 -right-16 size-44 bg-gradient-to-br from-primary/20 to-secondary/10 rounded-full blur-2xl pointer-events-none" />

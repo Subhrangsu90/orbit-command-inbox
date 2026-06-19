@@ -21,8 +21,8 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
   handleDelete,
 }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <Card className="w-full max-w-[28rem] p-6 bg-surface-container-lowest border border-outline shadow-2xl rounded-2xl space-y-6 text-left relative animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-3 backdrop-blur-sm sm:p-4">
+      <Card className="animate-in fade-in zoom-in relative my-auto w-full max-w-[28rem] space-y-6 rounded-2xl border border-outline bg-surface-container-lowest p-4 text-left shadow-2xl duration-200 sm:p-6">
         <button
           onClick={() => setSelectedEventId(null)}
           className="absolute right-4 top-4 p-1.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
@@ -76,9 +76,9 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
               {selectedEvent.attendees.map((attendee: any, i: number) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between p-2 rounded-lg bg-surface-container-low border border-outline-variant/40"
+                  className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-outline-variant/40 bg-surface-container-low p-2"
                 >
-                  <span className="text-xs text-on-surface font-medium truncate max-w-[220px]" title={attendee.email}>
+                  <span className="min-w-0 max-w-full break-all text-xs font-medium text-on-surface sm:max-w-[220px] sm:truncate" title={attendee.email}>
                     {attendee.displayName || attendee.email}
                   </span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${getResponseBadgeClass(attendee.responseStatus)}`}>
@@ -90,7 +90,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </div>
         )}
 
-        <div className="flex justify-end gap-2 border-t border-outline-variant/60 pt-4">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-outline-variant/60 pt-4">
           <Button
             variant="outline"
             size="sm"

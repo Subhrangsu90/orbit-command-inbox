@@ -90,6 +90,10 @@ function findBody(
 }
 
 function getMessageContent(payload: MessagePart | undefined) {
+  const html = findBody(payload, "text/html");
+  if (html)
+    return { body: sanitizeEmailHtml(html), contentType: "html" as const };
+
   const text = findBody(payload, "text/plain");
   if (text) {
     const content = text.trim();
@@ -100,10 +104,6 @@ function getMessageContent(payload: MessagePart | undefined) {
         : ("text" as const),
     };
   }
-
-  const html = findBody(payload, "text/html");
-  if (html)
-    return { body: sanitizeEmailHtml(html), contentType: "html" as const };
 
   return { body: "", contentType: "text" as const };
 }

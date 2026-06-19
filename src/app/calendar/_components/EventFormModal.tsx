@@ -120,8 +120,8 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   const isEdit = !!initialEvent;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <Card className="w-full max-w-[32rem] p-6 bg-surface-container-lowest border border-outline shadow-2xl rounded-2xl space-y-4 text-left relative animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-3 backdrop-blur-sm sm:p-4">
+      <Card className="animate-in fade-in zoom-in relative my-auto w-full max-w-[32rem] space-y-4 rounded-2xl border border-outline bg-surface-container-lowest p-4 text-left shadow-2xl duration-200 sm:p-6">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 p-1.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
@@ -178,7 +178,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="text-2xs font-bold text-on-surface-variant/80 uppercase">Start Date</label>
               <input
@@ -201,7 +201,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="text-2xs font-bold text-on-surface-variant/80 uppercase">End Date</label>
               <input

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { api } from "~/trpc/react";
 import { Logo } from "./Logo";
 
@@ -42,20 +42,6 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
     router.push("/chat");
   };
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 1024px)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (e.matches && isExpanded) {
-        onToggleExpanded();
-      }
-    };
-    mediaQuery.addEventListener("change", handleChange);
-    if (mediaQuery.matches && isExpanded) {
-      onToggleExpanded();
-    }
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [isExpanded, onToggleExpanded]);
-
   const getActiveTab = () => {
     if (pathname.startsWith("/chat")) return "agent";
     if (pathname.startsWith("/mail") || searchParams.has("mailbox")) return "mail";
@@ -68,7 +54,7 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
 
   return (
     <aside
-      className={`bg-surface-container-low border-outline-variant fixed top-0 left-0 z-45 hidden h-full transition-[width] duration-200 md:flex ${
+      className={`bg-surface-container-low border-outline-variant fixed top-0 left-0 z-45 hidden h-full border-r transition-[width] duration-200 md:flex ${
         isExpanded ? "w-70" : "w-18"
       }`}
     >

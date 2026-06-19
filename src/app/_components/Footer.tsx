@@ -2,7 +2,7 @@ import React from "react";
 
 export function Footer() {
   return (
-    <footer className="w-full border-t border-outline-variant bg-surface px-margin py-4 text-center text-xs text-on-surface-variant/80 shrink-0">
+    <footer className="w-full border-t border-outline-variant bg-surface px-margin py-4 pb-20 md:pb-4 text-center text-xs text-on-surface-variant/80 shrink-0">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
         <p>© {new Date().getFullYear()} Tacta Workspace. All rights reserved.</p>
         <div className="flex gap-4">

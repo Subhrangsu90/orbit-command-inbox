@@ -63,6 +63,8 @@ function TactileBg() {
 ───────────────────────────────────────────── */
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 24);
     window.addEventListener("scroll", fn, { passive: true });
@@ -70,9 +72,9 @@ function Navbar() {
   }, []);
 
   return (
-    <header className={`lp-nav${scrolled ? " lp-nav--solid" : ""}`}>
+    <header className={`lp-nav${scrolled ? " lp-nav--solid" : ""}${mobileMenuOpen ? " lp-nav--open" : ""}`}>
       <div className="lp-wrap lp-nav__row">
-        <Link href="/" className="lp-nav__logo">
+        <Link href="/" className="lp-nav__logo" onClick={() => setMobileMenuOpen(false)}>
           <Logo size={30} />
         </Link>
 
@@ -82,10 +84,46 @@ function Navbar() {
           <a href="#pricing">Pricing</a>
         </nav>
 
-        <div className="lp-nav__actions">
+        <div className="lp-nav__actions lp-desktop-only">
           <Link href="/login" className="lp-btn lp-btn-ghost">Sign in</Link>
           <Link href="/login" className="lp-btn lp-btn-filled">Get started</Link>
         </div>
+
+        <button
+          className="lp-nav__toggle"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileMenuOpen}
+        >
+          <span className="material-symbols-outlined">
+            {mobileMenuOpen ? "close" : "menu"}
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile Navigation Drawer */}
+      <div className={`lp-nav__mobile-drawer${mobileMenuOpen ? " open" : ""}`}>
+        <nav className="lp-nav__mobile-links">
+          <a href="#features" onClick={() => setMobileMenuOpen(false)}>
+            <span className="material-symbols-outlined">auto_awesome</span>
+            Features
+          </a>
+          <a href="#testimonials" onClick={() => setMobileMenuOpen(false)}>
+            <span className="material-symbols-outlined">forum</span>
+            Testimonials
+          </a>
+          <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>
+            <span className="material-symbols-outlined">payments</span>
+            Pricing
+          </a>
+          <div className="lp-nav__mobile-divider" />
+          <Link href="/login" className="lp-btn lp-btn-outlined lp-btn-full" onClick={() => setMobileMenuOpen(false)}>
+            Sign in
+          </Link>
+          <Link href="/login" className="lp-btn lp-btn-filled lp-btn-full" onClick={() => setMobileMenuOpen(false)}>
+            Get started
+          </Link>
+        </nav>
       </div>
     </header>
   );
@@ -572,6 +610,15 @@ const CSS = `
   align-items: center;
   gap: var(--space-sm);
   margin-left: var(--space-lg);
+}
+.lp-desktop-only {
+  display: flex;
+}
+.lp-nav__toggle {
+  display: none;
+}
+.lp-nav__mobile-drawer {
+  display: none;
 }
 
 /* ── Clean flat tactile grid background ── */
@@ -1073,6 +1120,68 @@ const CSS = `
   .lp-plan--pro { transform: none; }
   .lp-stats__grid { gap: var(--space-lg); }
   .lp-nav__links { display: none; }
+  .lp-desktop-only { display: none !important; }
+  .lp-nav__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--color-on-surface);
+    cursor: pointer;
+    padding: 0.5rem;
+    margin-left: auto;
+  }
+  .lp-nav__mobile-drawer {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 100vh;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-outline-variant);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), opacity 0.25s ease;
+    z-index: 199;
+  }
+  .lp-nav__mobile-drawer.open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .lp-nav__mobile-links {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-xl) var(--space-gutter);
+    gap: var(--space-md);
+  }
+  .lp-nav__mobile-links a {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    font-size: var(--text-title-lg-size);
+    font-weight: 600;
+    color: var(--color-on-surface);
+    text-decoration: none;
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) 30%, transparent);
+    transition: color var(--duration-fast) var(--ease-standard);
+  }
+  .lp-nav__mobile-links a:hover {
+    color: var(--color-primary);
+  }
+  .lp-nav__mobile-links a span {
+    color: var(--color-primary);
+  }
+  .lp-nav__mobile-divider {
+    height: 1px;
+    background: var(--color-outline-variant);
+    margin: var(--space-md) 0;
+  }
   .lp-footer__top { grid-template-columns: 1fr; gap: var(--space-xl); }
   .lp-footer__cols { flex-wrap: wrap; gap: var(--space-xl); }
   .lp-mockup { grid-template-columns: 48px 1fr; height: 260px; }

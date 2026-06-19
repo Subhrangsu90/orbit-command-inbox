@@ -79,7 +79,7 @@ export default function ChatPage() {
     <Suspense
       fallback={
         <WorkspaceLayout>
-          <div className="border-outline-variant bg-surface-container-low flex h-[calc(100vh-12rem)] max-h-[800px] items-center justify-center rounded-3xl border shadow-xl">
+          <div className="flex h-[calc(100dvh-9.5rem)] min-h-[420px] items-center justify-center overflow-hidden md:h-[calc(100vh-12rem)] md:max-h-[800px]">
             <div className="flex flex-col items-center gap-3">
               <RefreshCw className="text-primary size-8 animate-spin" />
               <p className="text-on-surface-variant animate-pulse text-xs font-semibold">
@@ -111,6 +111,7 @@ function ChatContainer() {
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState("");
   const [input, setInput] = useState("");
+  const [showHistoryOnMobile, setShowHistoryOnMobile] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -258,13 +259,13 @@ function ChatContainer() {
           e.preventDefault();
           handleSend(input);
         }}
-        className={`mx-auto flex w-full max-w-2xl flex-col items-center ${isCentered ? "mt-4" : ""}`}
+        className={`mx-auto flex w-full flex-col items-center ${isCentered ? "mt-4 max-w-3xl" : "max-w-4xl"}`}
       >
-        <div className="bg-surface-container-highest border-outline-variant/80 focus-within:ring-primary/45 relative flex w-full items-center rounded-full border p-1.5 shadow-sm transition focus-within:ring-2">
+        <div className="border-outline-variant/60 bg-surface-container-highest/85 focus-within:border-primary/60 focus-within:ring-primary/25 relative flex w-full min-w-0 items-center rounded-[1.75rem] border p-1.5 shadow-[0_14px_45px_rgba(0,0,0,0.08)] backdrop-blur transition focus-within:ring-4">
           {/* Plus icon on the left */}
           <button
             type="button"
-            className="text-on-surface-variant hover:bg-surface-container-high flex size-9 shrink-0 items-center justify-center rounded-full transition"
+            className="text-on-surface-variant hover:bg-surface-container-high hover:text-primary flex size-10 shrink-0 items-center justify-center rounded-full transition"
             title="Start New Chat"
             onClick={handleCreateRoom}
           >
@@ -278,16 +279,16 @@ function ChatContainer() {
             onChange={(e) => setInput(e.target.value)}
             disabled={chatInRoomMutation.isPending}
             placeholder="Ask Tacta anything..."
-            className="text-on-surface text-body-md placeholder:text-on-surface-variant/40 flex-grow border-none bg-transparent px-3 py-2 outline-none"
+            className="text-on-surface placeholder:text-on-surface-variant/45 min-w-0 flex-1 border-none bg-transparent px-2 py-3 text-sm outline-none sm:px-4 sm:text-base"
           />
 
           {/* Action elements on the right */}
-          <div className="flex shrink-0 items-center gap-1.5 pr-1.5">
+          <div className="flex shrink-0 items-center gap-1.5 pr-1">
             {input.trim() ? (
               <Button
                 type="submit"
                 disabled={chatInRoomMutation.isPending}
-                className="bg-primary text-on-primary hover:bg-primary-container flex size-9 items-center justify-center rounded-full p-0 shadow-xs transition"
+                className="bg-primary text-on-primary hover:bg-primary/90 flex size-10 items-center justify-center rounded-full p-0 shadow-sm transition"
               >
                 <Send className="size-4" />
               </Button>
@@ -295,7 +296,7 @@ function ChatContainer() {
               <>
                 <button
                   type="button"
-                  className="text-on-surface-variant hover:bg-surface-container-high flex size-9 items-center justify-center rounded-full transition"
+                  className="text-on-surface-variant hover:bg-surface-container-high hover:text-primary flex size-10 items-center justify-center rounded-full transition"
                   title="Voice input (Not supported)"
                 >
                   <Mic className="size-4.5" />
@@ -307,7 +308,7 @@ function ChatContainer() {
 
         {/* Suggestion Cards (Only show if centered/welcome state) */}
         {isCentered && (
-          <div className="mt-8 grid w-full grid-cols-1 gap-4 px-4 sm:grid-cols-3">
+          <div className="mt-6 grid w-full grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-3">
             {[
               {
                 title: "Schedule meeting",
@@ -334,16 +335,16 @@ function ChatContainer() {
                 key={idx}
                 type="button"
                 onClick={() => setInput(sug.prompt)}
-                className="bg-surface-container hover:bg-surface-container-high border-outline-variant/40 flex w-full flex-col items-start gap-2.5 rounded-2xl border p-4 text-left shadow-xs transition"
+                className="border-outline-variant/45 bg-surface-container-lowest/70 hover:border-primary/35 hover:bg-surface-container-low flex w-full min-w-0 flex-col items-start gap-3 rounded-2xl border p-4 text-left shadow-sm backdrop-blur transition"
               >
-                <div className="bg-primary/10 shrink-0 rounded-xl p-2">
+                <div className="bg-primary/10 text-primary shrink-0 rounded-2xl p-2.5">
                   {sug.icon}
                 </div>
                 <div className="min-w-0">
                   <h4 className="text-label-md text-on-surface truncate font-sans font-bold">
                     {sug.title}
                   </h4>
-                  <p className="text-on-surface-variant/70 mt-0.5 font-sans text-[11px] leading-normal">
+                  <p className="text-on-surface-variant/75 mt-1 font-sans text-xs leading-relaxed">
                     {sug.desc}
                   </p>
                 </div>
@@ -357,12 +358,12 @@ function ChatContainer() {
 
   return (
     <WorkspaceLayout>
-      <div className="border-outline-variant/60 bg-surface-container-low relative flex h-[calc(100vh-10rem)] min-h-[620px] flex-col overflow-hidden rounded-[28px] border shadow-sm">
+      <div className="relative -mx-3 flex h-[calc(100dvh-9.5rem)] min-h-[430px] flex-col overflow-hidden bg-background sm:-mx-md sm:h-[calc(100dvh-10rem)] md:mx-0 md:h-[calc(100vh-12rem)] md:min-h-[620px]">
         {/* Header */}
-        <div className="border-outline-variant/50 bg-surface-container-high/70 flex shrink-0 items-center justify-between border-b px-4 py-3 backdrop-blur md:px-5">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="bg-primary text-on-primary shrink-0 rounded-2xl p-2 shadow-xs">
-              <Sparkles className="size-5" />
+        <div className="border-outline-variant/45 mx-auto flex w-full max-w-6xl shrink-0 items-center justify-between gap-2 border-b px-3 py-3 sm:px-5 md:px-6">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="bg-primary-container text-on-primary-container shrink-0 rounded-2xl p-2.5 shadow-sm">
+              <Sparkles className="size-4.5 sm:size-5" />
             </div>
             <div className="min-w-0">
               {isEditing ? (
@@ -383,7 +384,7 @@ function ChatContainer() {
                         handleRenameSubmit(activeRoomId);
                       if (e.key === "Escape") setEditingRoomId(null);
                     }}
-                    className="bg-surface-container-lowest text-on-surface border-primary focus:ring-primary w-64 max-w-full rounded-xl border px-3 py-1 text-sm font-medium outline-none focus:ring-1"
+                    className="bg-background text-on-surface border-primary focus:ring-primary/35 w-32 max-w-full rounded-full border px-4 py-1.5 text-sm font-medium outline-none focus:ring-4 min-[380px]:w-48 sm:w-64"
                   />
                   <button
                     onClick={() =>
@@ -403,8 +404,8 @@ function ChatContainer() {
                   </button>
                 </div>
               ) : (
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <h2 className="text-title-md text-on-surface max-w-xs truncate font-sans font-semibold sm:max-w-md md:max-w-lg">
+                <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
+                  <h2 className="text-on-surface max-w-[9rem] truncate font-sans text-sm font-bold sm:max-w-md sm:text-title-md md:max-w-lg">
                     {activeRoom?.title ?? "Tacta Copilot"}
                   </h2>
                   {activeRoom && (
@@ -436,28 +437,107 @@ function ChatContainer() {
                   )}
                 </div>
               )}
-              <p className="text-body-sm text-on-surface-variant mt-0.5 flex items-center gap-1.5">
+              <p className="text-body-sm text-on-surface-variant mt-0.5 hidden items-center gap-1.5 sm:flex">
                 <span className="inline-block size-2 rounded-full bg-emerald-500"></span>
                 Draft-first email and calendar copilot
               </p>
             </div>
           </div>
 
-          {/* Quick action: New Chat button */}
-          <div className="flex items-center gap-1.5">
+          {/* Quick action: New Chat & Sessions button */}
+          <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+            <Button
+              variant="outline"
+              onClick={() => setShowHistoryOnMobile(!showHistoryOnMobile)}
+              className="border-outline-variant/70 hover:bg-surface-container-high flex h-9 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold md:hidden"
+            >
+              <span className="material-symbols-outlined text-sm leading-none">history</span>
+              <span className="hidden min-[380px]:inline">Sessions</span>
+            </Button>
             <Button
               variant="outline"
               onClick={handleCreateRoom}
               disabled={createRoomMutation.isPending}
-              className="border-outline-variant hover:bg-surface-container-high flex h-9 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold"
+              className="border-outline-variant/70 bg-surface-container-lowest/60 hover:bg-surface-container-high flex h-10 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold shadow-sm sm:px-4"
             >
-              <Plus className="size-4" /> New Chat
+              <Plus className="size-4" />
+              <span className="hidden min-[380px]:inline">New Chat</span>
             </Button>
           </div>
         </div>
 
+        {/* Mobile History Drawer / Overlay */}
+        {showHistoryOnMobile && (
+          <div className="border-outline-variant/60 bg-surface-container-lowest/95 absolute inset-x-3 top-[65px] z-30 animate-fade-in rounded-2xl border p-3 shadow-xl backdrop-blur md:hidden">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-on-surface">Chat Sessions</h3>
+              <button
+                onClick={() => setShowHistoryOnMobile(false)}
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="max-h-[45dvh] space-y-1 overflow-y-auto">
+              {rooms.length === 0 ? (
+                <p className="py-2 text-xs italic text-on-surface-variant/40">No chats yet</p>
+              ) : (
+                rooms.map((room) => {
+                  const isRoomActive = activeRoomId === room.id;
+                  return (
+                    <div
+                      key={room.id}
+                      className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs transition ${
+                        isRoomActive
+                          ? "bg-primary/10 text-primary font-semibold"
+                          : "text-on-surface-variant hover:bg-surface-container-low"
+                      }`}
+                    >
+                      <button
+                        onClick={() => {
+                          selectRoom(room.id);
+                          setShowHistoryOnMobile(false);
+                        }}
+                        className="flex-grow text-left truncate font-medium mr-2"
+                        title={room.title}
+                      >
+                        {room.title}
+                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingRoomId(room.id);
+                            setRenameInput(room.title);
+                            setShowHistoryOnMobile(false);
+                          }}
+                          className="hover:bg-surface-container-low p-1.5 rounded-lg text-on-surface-variant/75"
+                          title="Rename"
+                        >
+                          <Edit2 className="size-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            handleDeleteRoom(e, room.id);
+                            setShowHistoryOnMobile(false);
+                          }}
+                          className="hover:bg-error/15 rounded-lg p-1.5 text-error/75 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Content Area */}
-        <div className="relative flex min-h-0 flex-grow flex-col">
+        <div className="relative mx-auto flex min-h-0 w-full max-w-6xl flex-grow flex-col">
           {isLoadingHistory ? (
             <div className="flex flex-1 flex-col items-center justify-center">
               <RefreshCw className="text-primary size-6 animate-spin" />
@@ -466,31 +546,31 @@ function ChatContainer() {
               </p>
             </div>
           ) : messages.length === 0 ? (
-            <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center bg-transparent p-8">
-              <h1 className="text-on-surface animate-fade-in mb-8 text-center font-sans text-3xl font-bold tracking-tight sm:text-4xl">
+            <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center bg-transparent px-4 py-8 sm:px-8">
+              <h1 className="text-on-surface animate-fade-in mb-6 max-w-3xl text-center font-sans text-3xl font-bold leading-tight tracking-tight sm:mb-8 sm:text-5xl">
                 {welcomeText}
               </h1>
               {renderInputForm(true)}
             </div>
           ) : (
-            <div className="relative flex min-h-0 flex-grow flex-col pb-[100px]">
+            <div className="relative flex min-h-0 flex-grow flex-col pb-[96px] sm:pb-[100px]">
               {/* Messages Thread */}
-              <div className="flex-grow scrollbar-thin space-y-6 overflow-y-auto px-4 py-5 md:px-6">
+              <div className="scrollbar-thin flex-grow space-y-5 overflow-y-auto px-3 py-5 sm:px-5 md:px-6">
                 {messages.map((msg, index) => {
                   const isUser = msg.role === "user";
                   return (
                     <div
                       key={index}
-                      className={`mx-auto flex w-full max-w-5xl gap-3 md:gap-4 ${
+                      className={`mx-auto flex w-full max-w-4xl gap-2 sm:gap-3 md:gap-4 ${
                         isUser ? "justify-end" : "justify-start"
                       }`}
                     >
                       {/* Avatar */}
                       <div
-                        className={`text-title-sm flex size-9 shrink-0 items-center justify-center rounded-2xl font-bold shadow-xs ${
+                        className={`flex size-8 shrink-0 items-center justify-center rounded-xl text-sm font-bold shadow-xs sm:size-9 sm:rounded-2xl sm:text-title-sm ${
                           isUser
-                            ? "bg-secondary text-on-secondary"
-                            : "bg-primary text-on-primary"
+                            ? "bg-primary text-on-primary"
+                            : "bg-primary-container text-on-primary-container"
                         } ${isUser ? "order-2" : ""}`}
                       >
                         {isUser ? "U" : "T"}
@@ -498,13 +578,13 @@ function ChatContainer() {
 
                       {/* Bubble */}
                       <div
-                        className={`min-w-0 space-y-3 ${isUser ? "max-w-[78%]" : "w-full max-w-3xl"}`}
+                        className={`min-w-0 space-y-3 ${isUser ? "max-w-[84%] sm:max-w-[78%]" : "w-full max-w-3xl"}`}
                       >
                         <div
-                          className={`text-body-md px-5 py-3.5 leading-relaxed ${
+                          className={`overflow-hidden break-words px-3.5 py-3 text-sm leading-relaxed sm:px-5 sm:py-3.5 sm:text-body-md ${
                             isUser
                               ? "bg-primary text-on-primary rounded-3xl rounded-tr-md whitespace-pre-wrap shadow-xs"
-                              : "bg-surface-container-highest text-on-surface border-outline-variant rounded-2xl border shadow-xs"
+                              : "text-on-surface"
                           }`}
                         >
                           {isUser ? (
@@ -530,13 +610,13 @@ function ChatContainer() {
                 {/* Thinking indicator */}
                 {(chatInRoomMutation.isPending ||
                   createRoomMutation.isPending) && (
-                  <div className="mr-auto flex max-w-[80%] items-start gap-4">
+                  <div className="mr-auto flex max-w-[92%] items-start gap-2 sm:max-w-[80%] sm:gap-4">
                     <div className="bg-primary text-on-primary flex size-9 shrink-0 animate-pulse items-center justify-center rounded-full shadow-xs">
                       T
                     </div>
-                    <div className="bg-surface-container-highest text-on-surface border-outline-variant flex items-center gap-3 rounded-3xl rounded-tl-none border px-5 py-3.5">
+                    <div className="bg-surface-container-highest text-on-surface border-outline-variant flex min-w-0 items-center gap-2 rounded-2xl rounded-tl-none border px-3 py-3 sm:gap-3 sm:rounded-3xl sm:px-5 sm:py-3.5">
                       <RefreshCw className="text-primary size-4 animate-spin" />
-                      <span className="text-body-md text-on-surface-variant animate-pulse font-medium">
+                      <span className="text-on-surface-variant animate-pulse text-sm font-medium sm:text-body-md">
                         {createRoomMutation.isPending
                           ? "Creating conversation..."
                           : "Tacta Agent is executing actions..."}
@@ -549,7 +629,7 @@ function ChatContainer() {
               </div>
 
               {/* Bottom Input Form Bar */}
-              <div className="from-surface-container-low via-surface-container-low/95 absolute right-0 bottom-0 left-0 bg-gradient-to-t to-transparent p-4">
+              <div className="from-background via-background/95 absolute right-0 bottom-0 left-0 bg-gradient-to-t to-transparent px-3 py-4 sm:px-5">
                 {renderInputForm(false)}
               </div>
             </div>

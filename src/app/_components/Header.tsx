@@ -27,11 +27,11 @@ export function Header({ user }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 flex w-full items-center justify-between border-b border-outline-variant bg-surface px-margin py-sm">
-      <div className="flex items-center gap-md">
-        <Logo showText={true} size={28} />
+    <header className="sticky top-0 z-40 flex w-full min-w-0 items-center justify-between gap-2 border-b border-outline-variant bg-surface px-3 py-sm sm:px-margin">
+      <div className="flex min-w-0 items-center gap-md">
+        <Logo showText={true} className="[&_span]:hidden [&_span]:sm:inline-block" size={28} />
       </div>
-      <div className="flex items-center gap-sm">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-sm">
         <ThemeToggleButton
           appearance={appearance}
           disabled={isLoading || isSaving}
@@ -43,7 +43,7 @@ export function Header({ user }: HeaderProps) {
         {/* Settings Gear Button with custom shortcut tooltip */}
         <Link
           aria-label="Open settings"
-          className="grid size-10 place-items-center rounded-full text-on-surface-variant transition-all hover:bg-surface-container-high hover:text-primary relative group"
+          className="relative grid size-9 place-items-center rounded-full text-on-surface-variant transition-all hover:bg-surface-container-high hover:text-primary sm:size-10"
           title={`Settings (${preferences.settingsShortcut || "Alt+G"})`}
           href="/settings"
         >
@@ -54,20 +54,20 @@ export function Header({ user }: HeaderProps) {
 
         <Link
           aria-label="Open profile"
-          className="rounded-full shrink-0"
+          className="shrink-0 rounded-full"
           title="Profile Settings"
           href="/settings"
         >
           <img
             alt="User profile avatar"
-            className="size-8 rounded-full border border-outline object-cover shadow-sm hover:ring-2 hover:ring-primary/20 transition-all"
+            className="size-8 rounded-full border border-outline object-cover shadow-sm transition-all hover:ring-2 hover:ring-primary/20"
             src={user?.image || fallbackAvatar}
           />
         </Link>
         
         <button
           aria-label="Log out"
-          className="grid size-10 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-error"
+          className="grid size-9 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-error sm:size-10"
           onClick={() => void handleLogout()}
           title="Log out"
           type="button"

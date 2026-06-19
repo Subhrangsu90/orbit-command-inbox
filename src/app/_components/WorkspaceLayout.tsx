@@ -20,7 +20,7 @@ export function WorkspaceLayout({
   const session = authClient.useSession();
   const user = session.data?.user ?? null;
   const { preferences, isLoading: isLoadingPrefs } = useWorkspacePreferences();
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -109,14 +109,14 @@ export function WorkspaceLayout({
       />
 
       <div
-        className={`flex min-h-screen flex-grow flex-col transition-[margin] duration-200 ${
-          isSidebarExpanded ? "md:ml-70" : "md:ml-20"
+        className={`flex min-h-screen min-w-0 flex-1 flex-col transition-[margin] duration-200 ${
+          isSidebarExpanded ? "md:ml-70" : "md:ml-18"
         }`}
       >
         <Header user={user} />
 
         <main
-          className={`space-y-xl p-gutter md:pb-gutter mx-auto w-full flex-grow pb-24 ${
+          className={`mx-auto w-full flex-grow space-y-lg px-3 py-md pb-24 sm:px-md md:space-y-xl md:p-gutter md:pb-gutter ${
             wide ? "max-w-[1600px]" : "max-w-6xl"
           }`}
         >
