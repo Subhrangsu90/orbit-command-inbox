@@ -10,6 +10,19 @@ const messageSchema = z.object({
   content: z.string(),
 });
 
+const calendarActionEventSchema = z.object({
+  id: z.string().optional(),
+  calendarId: z.string().optional(),
+  summary: z.string().optional(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  description: z.string().optional(),
+  location: z.string().optional(),
+  attendees: z.array(z.string()).optional(),
+  calendarLink: z.string().optional(),
+  meetingLink: z.string().optional(),
+});
+
 const actionUnion = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("send_email"),
@@ -26,6 +39,8 @@ const actionUnion = z.discriminatedUnion("type", [
     draftId: z.string(),
     messageId: z.string().optional(),
     mailLink: z.string().optional(),
+    senderName: z.string().optional(),
+    senderEmail: z.string().optional(),
     success: z.boolean(),
   }),
   z.object({
@@ -44,6 +59,25 @@ const actionUnion = z.discriminatedUnion("type", [
     description: z.string().optional(),
     location: z.string().optional(),
     attendees: z.array(z.string()).optional(),
+    event: calendarActionEventSchema.optional(),
+    success: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("update_calendar_event"),
+    eventId: z.string(),
+    summary: z.string().optional(),
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
+    description: z.string().optional(),
+    location: z.string().optional(),
+    attendees: z.array(z.string()).optional(),
+    event: calendarActionEventSchema.optional(),
+    success: z.boolean(),
+  }),
+  z.object({
+    type: z.literal("delete_calendar_event"),
+    eventId: z.string(),
+    event: calendarActionEventSchema.optional(),
     success: z.boolean(),
   }),
   z.object({
@@ -51,7 +85,11 @@ const actionUnion = z.discriminatedUnion("type", [
     query: z.string(),
     count: z.number(),
   }),
-  z.object({ type: z.literal("list_events"), count: z.number() }),
+  z.object({
+    type: z.literal("list_events"),
+    count: z.number(),
+    events: z.array(calendarActionEventSchema).optional(),
+  }),
 ]);
 
 const chatMessageOutputSchema = z.object({

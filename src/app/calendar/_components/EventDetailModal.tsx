@@ -1,5 +1,14 @@
-import React from "react";
-import { X, Clock, MapPin, Users, Edit, Trash2 } from "lucide-react";
+import React, { useState } from "react";
+import {
+  X,
+  Clock,
+  MapPin,
+  Users,
+  Edit,
+  Trash2,
+  Share2,
+  Check,
+} from "lucide-react";
 import { Card } from "~/app/_components/ui/card";
 import { Button } from "~/app/_components/ui/button";
 
@@ -20,47 +29,78 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
   openEditModal,
   handleDelete,
 }) => {
+  const inviteLink = selectedEvent.htmlLink || selectedEvent.calendarLink;
+  const [isInviteLinkCopied, setIsInviteLinkCopied] = useState(false);
+
+  async function handleCopyInviteLink() {
+    if (!inviteLink) return;
+
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setIsInviteLinkCopied(true);
+      window.setTimeout(() => setIsInviteLinkCopied(false), 1800);
+    } catch {
+      window.open(inviteLink, "_blank", "noopener,noreferrer");
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-3 backdrop-blur-sm sm:p-4">
-      <Card className="animate-in fade-in zoom-in relative my-auto w-full max-w-[28rem] space-y-6 rounded-2xl border border-outline bg-surface-container-lowest p-4 text-left shadow-2xl duration-200 sm:p-6">
+      <Card className="animate-in fade-in zoom-in border-outline bg-surface-container-lowest relative my-auto w-full max-w-[28rem] space-y-6 rounded-2xl border p-4 text-left shadow-2xl duration-200 sm:p-6">
         <button
           onClick={() => setSelectedEventId(null)}
-          className="absolute right-4 top-4 p-1.5 rounded-lg border border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-container"
+          className="border-outline-variant text-on-surface-variant hover:text-on-surface hover:bg-surface-container absolute top-4 right-4 rounded-lg border p-1.5"
         >
           <X className="size-4" />
         </button>
 
         <div className="space-y-1 text-left">
-          <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+          <span className="bg-primary/10 text-primary border-primary/20 rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
             Event Detail
           </span>
-          <h3 className="font-serif text-xl font-bold text-on-surface tracking-tight mt-2">
+          <h3 className="text-on-surface mt-2 font-serif text-xl font-bold tracking-tight">
             {selectedEvent.summary || "(No Title)"}
           </h3>
-          <p className="text-2xs text-on-surface-variant/80 flex items-center gap-1.5 mt-1">
-            <Clock className="size-3.5 text-primary" />
+          <p className="text-2xs text-on-surface-variant/80 mt-1 flex items-center gap-1.5">
+            <Clock className="text-primary size-3.5" />
             {formatTimeRange(selectedEvent.start, selectedEvent.end)}
           </p>
+          {inviteLink && (
+            <button
+              type="button"
+              onClick={handleCopyInviteLink}
+              className="border-outline-variant text-primary hover:bg-primary/10 hover:border-primary/30 mt-4 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition"
+            >
+              {isInviteLinkCopied ? (
+                <Check className="size-4" />
+              ) : (
+                <Share2 className="size-4" />
+              )}
+              {isInviteLinkCopied ? "Link copied" : "Invite via link"}
+            </button>
+          )}
         </div>
 
         {selectedEvent.description && (
-          <div className="border-t border-outline-variant/60 pt-4 text-left">
-            <h5 className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider mb-1">
+          <div className="border-outline-variant/60 border-t pt-4 text-left">
+            <h5 className="text-on-surface-variant/60 mb-1 text-[10px] font-bold tracking-wider uppercase">
               Description
             </h5>
-            <p className="text-xs text-on-surface-variant whitespace-pre-line leading-relaxed">
-              {selectedEvent.description.replace(/\[Calendar:\s*[^\]]+\]/g, "").trim()}
+            <p className="text-on-surface-variant text-xs leading-relaxed whitespace-pre-line">
+              {selectedEvent.description
+                .replace(/\[Calendar:\s*[^\]]+\]/g, "")
+                .trim()}
             </p>
           </div>
         )}
 
         {selectedEvent.location && (
-          <div className="border-t border-outline-variant/60 pt-4 text-left">
-            <h5 className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider mb-1">
+          <div className="border-outline-variant/60 border-t pt-4 text-left">
+            <h5 className="text-on-surface-variant/60 mb-1 text-[10px] font-bold tracking-wider uppercase">
               Location
             </h5>
-            <p className="text-xs text-on-surface-variant flex items-center gap-1.5">
-              <MapPin className="size-4 text-on-surface-variant/70" />
+            <p className="text-on-surface-variant flex items-center gap-1.5 text-xs">
+              <MapPin className="text-on-surface-variant/70 size-4" />
               {selectedEvent.location}
             </p>
           </div>
@@ -68,20 +108,26 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
 
         {/* Attendees */}
         {selectedEvent.attendees && selectedEvent.attendees.length > 0 && (
-          <div className="border-t border-outline-variant/60 pt-4 text-left">
-            <h5 className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Users className="size-3.5" /> Attendees ({selectedEvent.attendees.length})
+          <div className="border-outline-variant/60 border-t pt-4 text-left">
+            <h5 className="text-on-surface-variant/60 mb-2 flex items-center gap-1.5 text-[10px] font-bold tracking-wider uppercase">
+              <Users className="size-3.5" /> Attendees (
+              {selectedEvent.attendees.length})
             </h5>
-            <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+            <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
               {selectedEvent.attendees.map((attendee: any, i: number) => (
                 <div
                   key={i}
-                  className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-outline-variant/40 bg-surface-container-low p-2"
+                  className="border-outline-variant/40 bg-surface-container-low flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border p-2"
                 >
-                  <span className="min-w-0 max-w-full break-all text-xs font-medium text-on-surface sm:max-w-[220px] sm:truncate" title={attendee.email}>
+                  <span
+                    className="text-on-surface max-w-full min-w-0 text-xs font-medium break-all sm:max-w-[220px] sm:truncate"
+                    title={attendee.email}
+                  >
                     {attendee.displayName || attendee.email}
                   </span>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold capitalize ${getResponseBadgeClass(attendee.responseStatus)}`}>
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${getResponseBadgeClass(attendee.responseStatus)}`}
+                  >
                     {attendee.responseStatus || "needsAction"}
                   </span>
                 </div>
@@ -90,20 +136,26 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
           </div>
         )}
 
-        <div className="flex flex-wrap justify-end gap-2 border-t border-outline-variant/60 pt-4">
+        <div className="border-outline-variant/60 flex flex-wrap justify-end gap-2 border-t pt-4">
           <Button
             variant="outline"
             size="sm"
             onClick={() => openEditModal(selectedEvent)}
-            className="rounded-xl border border-outline-variant text-xs h-9 px-4 font-semibold text-on-surface hover:bg-surface-container flex items-center gap-1"
+            className="border-outline-variant text-on-surface hover:bg-surface-container flex h-9 items-center gap-1 rounded-xl border px-4 text-xs font-semibold"
           >
             <Edit className="size-4" /> Edit
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => selectedEvent.id && handleDelete(selectedEvent.id, selectedEvent.calendarId || "primary")}
-            className="rounded-xl border border-outline-variant text-rose-500 hover:bg-rose-500/5 hover:border-rose-500/20 text-xs h-9 px-4 font-semibold flex items-center gap-1"
+            onClick={() =>
+              selectedEvent.id &&
+              handleDelete(
+                selectedEvent.id,
+                selectedEvent.calendarId || "primary",
+              )
+            }
+            className="border-outline-variant flex h-9 items-center gap-1 rounded-xl border px-4 text-xs font-semibold text-rose-500 hover:border-rose-500/20 hover:bg-rose-500/5"
           >
             <Trash2 className="size-4" /> Delete
           </Button>
@@ -111,7 +163,7 @@ export const EventDetailModal: React.FC<EventDetailModalProps> = ({
             type="button"
             variant="primary"
             onClick={() => setSelectedEventId(null)}
-            className="rounded-xl bg-primary text-on-primary hover:bg-primary-container text-xs h-9 px-4 font-semibold shadow-sm"
+            className="bg-primary text-on-primary hover:bg-primary-container h-9 rounded-xl px-4 text-xs font-semibold shadow-sm"
           >
             Close
           </Button>

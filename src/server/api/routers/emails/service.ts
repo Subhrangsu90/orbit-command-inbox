@@ -284,6 +284,29 @@ function serializeLocalEntity(row: {
 }
 
 export const emailsService = {
+  async getConnectedProfile(tenantId: string) {
+    await ensureCorsairConfigured();
+    const client = corsair.withTenant(tenantId);
+    const usersApi = client.gmail.api as unknown as {
+      users?: {
+        getProfile?: (input: { userId: string }) => Promise<{
+          emailAddress?: string;
+          messagesTotal?: number;
+          threadsTotal?: number;
+          historyId?: string;
+        }>;
+      };
+    };
+
+    const profile = await usersApi.users?.getProfile?.({ userId: "me" });
+    return {
+      email: profile?.emailAddress?.trim() || undefined,
+      messagesTotal: profile?.messagesTotal,
+      threadsTotal: profile?.threadsTotal,
+      historyId: profile?.historyId,
+    };
+  },
+
   async list(
     tenantId: string,
     input: {

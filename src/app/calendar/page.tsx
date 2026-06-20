@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   CalendarRange,
   ChevronLeft,
@@ -34,27 +35,41 @@ import { EventFormModal } from "./_components/EventFormModal";
 import { Sidebar } from "./_components/Sidebar";
 
 export default function CalendarPage() {
+  const searchParams = useSearchParams();
+  const linkedEventId = searchParams.get("eventId");
+  const linkedCalendarId = searchParams.get("calendarId") ?? undefined;
   const { preferences } = useWorkspacePreferences();
-  const { data: connections, isLoading: isLoadingConnections } = api.corsair.getConnections.useQuery();
+  const { data: connections, isLoading: isLoadingConnections } =
+    api.corsair.getConnections.useQuery();
   const isConnected = !!connections?.googlecalendar;
 
   // View settings
-  const [viewMode, setViewMode] = useState<"day" | "week" | "month" | "year">("month");
+  const [viewMode, setViewMode] = useState<"day" | "week" | "month" | "year">(
+    "month",
+  );
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
   const [searchQuery, setSearchQuery] = useState("");
 
   // Checked calendars filtering
-  const [checkedCalendars, setCheckedCalendars] = useState<Record<string, boolean>>({});
+  const [checkedCalendars, setCheckedCalendars] = useState<
+    Record<string, boolean>
+  >({});
 
   // Mini calendar state
-  const [miniCalendarMonth, setMiniCalendarMonth] = useState<Date>(() => new Date());
+  const [miniCalendarMonth, setMiniCalendarMonth] = useState<Date>(
+    () => new Date(),
+  );
 
   // Search people query
   const [searchPeopleQuery, setSearchPeopleQuery] = useState("");
   const [localSearchQuery, setLocalSearchQuery] = useState("");
-  const [availabilityResult, setAvailabilityResult] = useState<{ busy: { start?: string; end?: string }[] } | null>(null);
+  const [availabilityResult, setAvailabilityResult] = useState<{
+    busy: { start?: string; end?: string }[];
+  } | null>(null);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
-  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(
+    null,
+  );
 
   // Event category for Form Create/Edit
   const [eventCalendarId, setEventCalendarId] = useState("primary");
@@ -92,15 +107,19 @@ export default function CalendarPage() {
   }, [currentDate, viewMode]);
 
   // Selection & Form states
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(
+    linkedEventId,
+  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
+  useEffect(() => {
+    if (linkedEventId) setSelectedEventId(linkedEventId);
+  }, [linkedEventId]);
+
   // Fetch calendar resources list
-  const { data: calendarListData, isLoading: isLoadingCalendars } = api.calendar.listCalendars.useQuery(
-    undefined,
-    { enabled: isConnected }
-  );
+  const { data: calendarListData, isLoading: isLoadingCalendars } =
+    api.calendar.listCalendars.useQuery(undefined, { enabled: isConnected });
 
   // Group and assign colors to retrieved calendars dynamically
   const { myCalendars, otherCalendars, allCalendars } = useMemo(() => {
@@ -108,7 +127,16 @@ export default function CalendarPage() {
       return { myCalendars: [], otherCalendars: [], allCalendars: [] };
     }
 
-    const COLOR_KEYS = ["blue", "green", "forest", "indigo", "teal", "sky", "rose", "orange"] as const;
+    const COLOR_KEYS = [
+      "blue",
+      "green",
+      "forest",
+      "indigo",
+      "teal",
+      "sky",
+      "rose",
+      "orange",
+    ] as const;
 
     const mapped = calendarListData.calendars.map((cal, idx) => {
       const color = COLOR_KEYS[idx % COLOR_KEYS.length]!;
@@ -173,23 +201,32 @@ export default function CalendarPage() {
   }, [myCalendars]);
 
   useEffect(() => {
-    if (primaryCalendar?.id && (eventCalendarId === "primary" || eventCalendarId === "subhrangsu-bera")) {
+    if (
+      primaryCalendar?.id &&
+      (eventCalendarId === "primary" || eventCalendarId === "subhrangsu-bera")
+    ) {
       setEventCalendarId(primaryCalendar.id);
     }
   }, [primaryCalendar, eventCalendarId]);
 
   // Calendar query
-  const { data: calendarData, isLoading: isLoadingEvents, refetch } = api.calendar.list.useQuery(
+  const {
+    data: calendarData,
+    isLoading: isLoadingEvents,
+    refetch,
+  } = api.calendar.list.useQuery(
     {
       q: searchQuery || undefined,
       maxResults: 100,
       timeMin: searchQuery ? undefined : viewRangeTimeMin,
       calendarIds: activeCalendarIds.length > 0 ? activeCalendarIds : undefined,
     },
-    { enabled: isConnected && activeCalendarIds.length > 0 }
+    { enabled: isConnected && activeCalendarIds.length > 0 },
   );
 
-  const isLoading = isLoadingCalendars || (isConnected && activeCalendarIds.length > 0 && isLoadingEvents);
+  const isLoading =
+    isLoadingCalendars ||
+    (isConnected && activeCalendarIds.length > 0 && isLoadingEvents);
 
   const isCalConnected = isConnected && !calendarData?.notConnected;
   const events = calendarData?.events ?? [];
@@ -197,18 +234,27 @@ export default function CalendarPage() {
   // 1. Fetch event details via api.calendar.get
   const { data: eventDetails } = api.calendar.get.useQuery(
     { id: selectedEventId ?? "" },
-    { enabled: !!selectedEventId }
+    { enabled: !!selectedEventId },
   );
 
   // 2. Fetch local synced database events via api.calendar.searchLocal
-  const { data: localSearchResults, isLoading: isLoadingLocalSearch } = api.calendar.searchLocal.useQuery(
-    {
-      entity: "events",
-      filters: localSearchQuery ? [{ field: "summary", operator: "contains", value: localSearchQuery }] : [],
-      limit: 5,
-    },
-    { enabled: localSearchQuery.length >= 2 }
-  );
+  const { data: localSearchResults, isLoading: isLoadingLocalSearch } =
+    api.calendar.searchLocal.useQuery(
+      {
+        entity: "events",
+        filters: localSearchQuery
+          ? [
+              {
+                field: "summary",
+                operator: "contains",
+                value: localSearchQuery,
+              },
+            ]
+          : [],
+        limit: 5,
+      },
+      { enabled: localSearchQuery.length >= 2 },
+    );
 
   // 3. Get availability mutation via api.calendar.getAvailability
   const getAvailabilityMutation = api.calendar.getAvailability.useMutation({
@@ -278,17 +324,24 @@ export default function CalendarPage() {
     attendeesInput: string;
     eventCalendarId: string;
   }) => {
-    const startISO = new Date(`${data.startDate}T${data.startTimeInput}:00`).toISOString();
-    const endISO = new Date(`${data.endDate}T${data.endTimeInput}:00`).toISOString();
+    const startISO = new Date(
+      `${data.startDate}T${data.startTimeInput}:00`,
+    ).toISOString();
+    const endISO = new Date(
+      `${data.endDate}T${data.endTimeInput}:00`,
+    ).toISOString();
     const attendees = data.attendeesInput
-      ? data.attendeesInput.split(",").map((email) => email.trim()).filter(Boolean)
+      ? data.attendeesInput
+          .split(",")
+          .map((email) => email.trim())
+          .filter(Boolean)
       : [];
 
     const selectedCal = allCalendars.find((c) => c.id === data.eventCalendarId);
     const taggedDescription = selectedCal
       ? `${data.description ? data.description + "\n\n" : ""}[Calendar: ${selectedCal.name}]`
       : data.description;
-    
+
     const calIdx = allCalendars.findIndex((c) => c.id === data.eventCalendarId);
     const colorId = calIdx >= 0 ? String((calIdx % 8) + 1) : "1";
 
@@ -317,15 +370,24 @@ export default function CalendarPage() {
   }) => {
     if (!selectedEventId) return;
 
-    const startISO = new Date(`${data.startDate}T${data.startTimeInput}:00`).toISOString();
-    const endISO = new Date(`${data.endDate}T${data.endTimeInput}:00`).toISOString();
+    const startISO = new Date(
+      `${data.startDate}T${data.startTimeInput}:00`,
+    ).toISOString();
+    const endISO = new Date(
+      `${data.endDate}T${data.endTimeInput}:00`,
+    ).toISOString();
     const attendees = data.attendeesInput
-      ? data.attendeesInput.split(",").map((email) => email.trim()).filter(Boolean)
+      ? data.attendeesInput
+          .split(",")
+          .map((email) => email.trim())
+          .filter(Boolean)
       : [];
 
     const selectedCal = allCalendars.find((c) => c.id === data.eventCalendarId);
     let cleanDescription = data.description;
-    cleanDescription = cleanDescription.replace(/\[Calendar:\s*[^\]]+\]/g, "").trim();
+    cleanDescription = cleanDescription
+      .replace(/\[Calendar:\s*[^\]]+\]/g, "")
+      .trim();
     const taggedDescription = selectedCal
       ? `${cleanDescription ? cleanDescription + "\n\n" : ""}[Calendar: ${selectedCal.name}]`
       : cleanDescription;
@@ -354,7 +416,10 @@ export default function CalendarPage() {
 
   // Autofocus scrolling to 7 AM on view mode change
   useEffect(() => {
-    if (scrollContainerRef.current && (viewMode === "week" || viewMode === "day")) {
+    if (
+      scrollContainerRef.current &&
+      (viewMode === "week" || viewMode === "day")
+    ) {
       scrollContainerRef.current.scrollTop = 7 * 64; // 64px per hour slot
     }
   }, [viewMode]);
@@ -405,18 +470,18 @@ export default function CalendarPage() {
       const hasCtrl = parts.includes("ctrl");
       const hasAlt = parts.includes("alt");
       const hasShift = parts.includes("shift");
-      
+
       const mainKey = parts.find((p) => !["ctrl", "alt", "shift"].includes(p));
       if (!mainKey) return false;
-      
+
       const eventCtrl = e.ctrlKey || e.metaKey;
       const eventAlt = e.altKey;
       const eventShift = e.shiftKey;
-      
+
       if (eventCtrl !== hasCtrl) return false;
       if (eventAlt !== hasAlt) return false;
       if (eventShift !== hasShift) return false;
-      
+
       const eventKey = e.key.toLowerCase();
       if (mainKey === "enter" && eventKey === "enter") return true;
       if (mainKey === "escape" && eventKey === "escape") return true;
@@ -425,7 +490,7 @@ export default function CalendarPage() {
       if (mainKey === "arrowup" && eventKey === "arrowup") return true;
       if (mainKey === "arrowleft" && eventKey === "arrowleft") return true;
       if (mainKey === "arrowright" && eventKey === "arrowright") return true;
-      
+
       return eventKey === mainKey;
     }
 
@@ -474,7 +539,8 @@ export default function CalendarPage() {
     preferences.shortcutCalendarToday,
   ]);
 
-  const selectedEvent = events.find((ev) => ev.id === selectedEventId);
+  const selectedEvent =
+    events.find((ev) => ev.id === selectedEventId) ?? eventDetails;
 
   // Range Navigation Helpers
   const handlePrev = () => {
@@ -577,7 +643,7 @@ export default function CalendarPage() {
       })
       .sort((a, b) => a.parsed.start!.getTime() - b.parsed.start!.getTime());
 
-    const columns: typeof dayEvents[] = [];
+    const columns: (typeof dayEvents)[] = [];
 
     dayEvents.forEach((ev) => {
       const start = ev.parsed.start!.getTime();
@@ -640,49 +706,49 @@ export default function CalendarPage() {
         {/* Main Calendar Content (Left side, flex-1) */}
         <div className="min-w-0 flex-1 space-y-6">
           {/* Calendar Header Section (Compact Google Calendar Style) */}
-          <div className="flex flex-col justify-between gap-4 border-b border-outline-variant pb-4 md:flex-row md:items-center">
+          <div className="border-outline-variant flex flex-col justify-between gap-4 border-b pb-4 md:flex-row md:items-center">
             <div className="flex flex-wrap items-center gap-4">
-              <div className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-xl border border-primary/20 shadow-sm">
-                <CalendarRange className="size-5 text-primary" />
+              <div className="bg-primary/10 text-primary border-primary/20 flex size-10 items-center justify-center rounded-xl border shadow-sm">
+                <CalendarRange className="text-primary size-5" />
               </div>
-              <h2 className="font-serif text-xl font-bold tracking-tight text-on-surface">
+              <h2 className="text-on-surface font-serif text-xl font-bold tracking-tight">
                 Calendar
               </h2>
             </div>
-   
+
             {isCalConnected && (
-              <div className="flex min-w-0 flex-wrap items-center gap-2 border-outline-variant/60 md:gap-3 md:border-l md:pl-2">
+              <div className="border-outline-variant/60 flex min-w-0 flex-wrap items-center gap-2 md:gap-3 md:border-l md:pl-2">
                 {/* Navigation Controls */}
-                <div className="flex items-center bg-surface-container rounded-lg border border-outline-variant overflow-hidden">
+                <div className="bg-surface-container border-outline-variant flex items-center overflow-hidden rounded-lg border">
                   <button
                     onClick={handlePrev}
-                    className="p-1.5 hover:bg-surface-container-high border-r border-outline-variant text-on-surface-variant hover:text-on-surface transition"
+                    className="hover:bg-surface-container-high border-outline-variant text-on-surface-variant hover:text-on-surface border-r p-1.5 transition"
                     title="Previous range"
                   >
                     <ChevronLeft className="size-3.5" />
                   </button>
                   <button
                     onClick={handleToday}
-                    className="px-2.5 py-1 text-3xs font-bold hover:bg-surface-container-high text-on-surface transition"
+                    className="text-3xs hover:bg-surface-container-high text-on-surface px-2.5 py-1 font-bold transition"
                   >
                     Today
                   </button>
                   <button
                     onClick={handleNext}
-                    className="p-1.5 hover:bg-surface-container-high border-l border-outline-variant text-on-surface-variant hover:text-on-surface transition"
+                    className="hover:bg-surface-container-high border-outline-variant text-on-surface-variant hover:text-on-surface border-l p-1.5 transition"
                     title="Next range"
                   >
                     <ChevronRight className="size-3.5" />
                   </button>
                 </div>
-   
+
                 {/* View Range Label */}
-                <h3 className="min-w-0 truncate text-sm font-semibold tracking-tight text-on-surface">
+                <h3 className="text-on-surface min-w-0 truncate text-sm font-semibold tracking-tight">
                   {formatRangeLabel(currentDate, viewMode)}
                 </h3>
-   
+
                 {searchQuery && (
-                  <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2.5 py-0.5 rounded-full font-medium shrink-0">
+                  <span className="bg-primary/10 text-primary border-primary/20 shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-medium">
                     Search matches
                   </span>
                 )}
@@ -698,20 +764,20 @@ export default function CalendarPage() {
                     placeholder="Search events..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-8 w-full min-w-36 rounded-lg border border-outline-variant bg-surface-container pr-3 pl-8 text-2xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none sm:w-48"
+                    className="border-outline-variant bg-surface-container text-2xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-primary h-8 w-full min-w-36 rounded-lg border pr-3 pl-8 focus:ring-1 focus:outline-none sm:w-48"
                   />
-                  <Search className="absolute left-2.5 top-2.5 size-3.5 text-on-surface-variant/60" />
+                  <Search className="text-on-surface-variant/60 absolute top-2.5 left-2.5 size-3.5" />
                 </div>
-   
+
                 {/* View Selector Pills */}
-                <div className="flex overflow-x-auto rounded-lg border border-outline-variant bg-surface-container p-0.5">
+                <div className="border-outline-variant bg-surface-container flex overflow-x-auto rounded-lg border p-0.5">
                   {(["day", "week", "month", "year"] as const).map((mode) => (
                     <button
                       key={mode}
                       onClick={() => setViewMode(mode)}
-                      className={`px-2.5 py-1 text-3xs font-semibold rounded-md capitalize transition-all ${
+                      className={`text-3xs rounded-md px-2.5 py-1 font-semibold capitalize transition-all ${
                         viewMode === mode
-                          ? "bg-primary text-on-primary shadow-sm scale-100"
+                          ? "bg-primary text-on-primary scale-100 shadow-sm"
                           : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
                       }`}
                     >
@@ -725,50 +791,59 @@ export default function CalendarPage() {
 
           {/* Main Calendar Content */}
           {isLoadingConnections ? (
-            <div className="flex h-96 items-center justify-center rounded-2xl border border-outline-variant bg-surface-container-lowest">
+            <div className="border-outline-variant bg-surface-container-lowest flex h-96 items-center justify-center rounded-2xl border">
               <div className="flex flex-col items-center gap-2">
-                <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <p className="text-xs text-on-surface-variant">Checking calendar connection...</p>
+                <div className="border-primary size-8 animate-spin rounded-full border-2 border-t-transparent" />
+                <p className="text-on-surface-variant text-xs">
+                  Checking calendar connection...
+                </p>
               </div>
             </div>
           ) : !isCalConnected ? (
-            <div className="p-12 border border-dashed border-outline-variant bg-surface-container-lowest rounded-2xl flex flex-col items-center justify-center text-center max-w-[32rem] mx-auto mt-12">
+            <div className="border-outline-variant bg-surface-container-lowest mx-auto mt-12 flex max-w-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
               <div className="relative mb-4">
-                <CalendarRange className="size-12 text-on-surface-variant opacity-60" />
-                <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full bg-surface-container-lowest">
-                  <AlertCircle className="size-4 text-warning" />
+                <CalendarRange className="text-on-surface-variant size-12 opacity-60" />
+                <span className="bg-surface-container-lowest absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full">
+                  <AlertCircle className="text-warning size-4" />
                 </span>
               </div>
-              <p className="font-semibold text-sm text-on-surface">Google Calendar Disconnected</p>
-              <p className="text-xs text-on-surface-variant mt-1 max-w-[24rem]">
-                Connect your Google Calendar in settings to view, schedule, and sync invites seamlessly.
+              <p className="text-on-surface text-sm font-semibold">
+                Google Calendar Disconnected
+              </p>
+              <p className="text-on-surface-variant mt-1 max-w-[24rem] text-xs">
+                Connect your Google Calendar in settings to view, schedule, and
+                sync invites seamlessly.
               </p>
               <Link
                 href="/settings"
-                className="mt-4 inline-flex bg-primary text-on-primary hover:bg-primary-container px-5 py-2.5 rounded-xl text-xs font-semibold transition shadow-sm hover:scale-[1.02] active:scale-[0.98]"
+                className="bg-primary text-on-primary hover:bg-primary-container mt-4 inline-flex rounded-xl px-5 py-2.5 text-xs font-semibold shadow-sm transition hover:scale-[1.02] active:scale-[0.98]"
               >
                 Go to Settings
               </Link>
             </div>
           ) : isLoading ? (
-            <div className="flex h-96 items-center justify-center bg-surface-container-lowest border border-outline-variant rounded-2xl">
+            <div className="bg-surface-container-lowest border-outline-variant flex h-96 items-center justify-center rounded-2xl border">
               <div className="flex flex-col items-center gap-2">
-                <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <p className="text-xs text-on-surface-variant">Loading schedule...</p>
+                <div className="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent" />
+                <p className="text-on-surface-variant text-xs">
+                  Loading schedule...
+                </p>
               </div>
             </div>
           ) : (
-            <div className="transition-all duration-200 space-y-4">
+            <div className="space-y-4 transition-all duration-200">
               {calendarData?.fromCache && (
-                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-medium animate-fade-in">
+                <div className="animate-fade-in flex items-center gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-xs font-medium text-amber-700 dark:text-amber-400">
                   <Database className="size-3.5 shrink-0" />
                   <span>
-                    <strong>Showing cached data.</strong> Google API is currently unreachable — displaying your last synced events. Changes may not reflect.
+                    <strong>Showing cached data.</strong> Google API is
+                    currently unreachable — displaying your last synced events.
+                    Changes may not reflect.
                   </span>
                   <button
                     type="button"
                     onClick={() => void refetch()}
-                    className="ml-auto shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-300 font-semibold transition-colors text-[11px]"
+                    className="ml-auto flex shrink-0 items-center gap-1 rounded-lg bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-300"
                   >
                     <RefreshCw className="size-3" />
                     Retry

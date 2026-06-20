@@ -1,5 +1,27 @@
 import { corsair, ensureCorsairConfigured } from "~/server/corsair";
 
+class CalendarConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CalendarConflictError";
+  }
+}
+
+function getEventTimeValue(
+  value: { dateTime?: string; date?: string } | undefined,
+) {
+  return value?.dateTime ?? value?.date ?? "";
+}
+
+function intervalsOverlap(startA: Date, endA: Date, startB: Date, endB: Date) {
+  return startA < endB && startB < endA;
+}
+
+function describeBusySlot(slot: { start?: string; end?: string }) {
+  if (!slot.start || !slot.end) return "an existing event";
+  return `${new Date(slot.start).toLocaleString()} - ${new Date(slot.end).toLocaleString()}`;
+}
+
 export const calendarService = {
   async list(
     tenantId: string,
@@ -200,9 +222,63 @@ export const calendarService = {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
     try {
+      const calendarId = input.calendarId ?? "primary";
+      const requestedStart = new Date(input.startTime);
+      const requestedEnd = new Date(input.endTime);
+
+      if (
+        Number.isNaN(requestedStart.getTime()) ||
+        Number.isNaN(requestedEnd.getTime()) ||
+        requestedEnd <= requestedStart
+      ) {
+        throw new Error("Event end time must be after a valid start time.");
+      }
+
+      const availability =
+        await client.googlecalendar.api.calendar.getAvailability({
+          timeMin: requestedStart.toISOString(),
+          timeMax: requestedEnd.toISOString(),
+          items: [{ id: calendarId }],
+        });
+      const busySlots = availability.calendars?.[calendarId]?.busy ?? [];
+
+      if (busySlots.length > 0) {
+        throw new CalendarConflictError(
+          `Calendar slot is already busy from ${describeBusySlot(busySlots[0]!)}. I did not create a duplicate event.`,
+        );
+      }
+
+      const existingEvents = await client.googlecalendar.api.events.getMany({
+        calendarId,
+        timeMin: requestedStart.toISOString(),
+        timeMax: requestedEnd.toISOString(),
+        singleEvents: true,
+        orderBy: "startTime",
+        maxResults: 10,
+      });
+      const duplicate = (existingEvents.items ?? []).find((event: any) => {
+        const eventStart = getEventTimeValue(event.start);
+        const eventEnd = getEventTimeValue(event.end);
+        return (
+          eventStart &&
+          eventEnd &&
+          new Date(eventStart).getTime() === requestedStart.getTime() &&
+          new Date(eventEnd).getTime() === requestedEnd.getTime() &&
+          String(event.summary ?? "")
+            .trim()
+            .toLowerCase() === input.summary.trim().toLowerCase()
+        );
+      });
+
+      if (duplicate) {
+        throw new CalendarConflictError(
+          `An event named "${input.summary}" already exists in that exact slot. I did not create a duplicate event.`,
+        );
+      }
+
       const attendees = input.attendees?.map((email) => ({ email })) ?? [];
       const res = await client.googlecalendar.api.events.create({
-        calendarId: input.calendarId ?? "primary",
+        calendarId,
         event: {
           summary: input.summary,
           description: input.description,
@@ -227,6 +303,9 @@ export const calendarService = {
       };
     } catch (error) {
       console.error("Error creating calendar event:", error);
+      if (error instanceof CalendarConflictError) {
+        throw error;
+      }
       handleCalendarError(error, "Failed to create calendar event.");
     }
   },
@@ -253,6 +332,77 @@ export const calendarService = {
         calendarId,
         id: input.id,
       });
+      if (input.startTime || input.endTime) {
+        const nextStartValue =
+          input.startTime ?? getEventTimeValue(existing.start);
+        const nextEndValue = input.endTime ?? getEventTimeValue(existing.end);
+        const nextStart = new Date(nextStartValue);
+        const nextEnd = new Date(nextEndValue);
+
+        if (
+          Number.isNaN(nextStart.getTime()) ||
+          Number.isNaN(nextEnd.getTime()) ||
+          nextEnd <= nextStart
+        ) {
+          throw new Error("Event end time must be after a valid start time.");
+        }
+
+        const overlappingEvents =
+          await client.googlecalendar.api.events.getMany({
+            calendarId,
+            timeMin: nextStart.toISOString(),
+            timeMax: nextEnd.toISOString(),
+            singleEvents: true,
+            orderBy: "startTime",
+            maxResults: 10,
+          });
+        const conflict = (overlappingEvents.items ?? []).find((event: any) => {
+          if (event.id === input.id || event.status === "cancelled")
+            return false;
+          const eventStartValue = getEventTimeValue(event.start);
+          const eventEndValue = getEventTimeValue(event.end);
+          if (!eventStartValue || !eventEndValue) return false;
+
+          return intervalsOverlap(
+            nextStart,
+            nextEnd,
+            new Date(eventStartValue),
+            new Date(eventEndValue),
+          );
+        });
+
+        if (conflict) {
+          throw new CalendarConflictError(
+            `Cannot update event into a busy slot. It conflicts with "${conflict.summary ?? "an existing event"}".`,
+          );
+        }
+
+        const duplicate = (overlappingEvents.items ?? []).find((event: any) => {
+          if (event.id === input.id || event.status === "cancelled")
+            return false;
+          const eventStart = getEventTimeValue(event.start);
+          const eventEnd = getEventTimeValue(event.end);
+          return (
+            eventStart &&
+            eventEnd &&
+            new Date(eventStart).getTime() === nextStart.getTime() &&
+            new Date(eventEnd).getTime() === nextEnd.getTime() &&
+            String(event.summary ?? "")
+              .trim()
+              .toLowerCase() ===
+              String(input.summary ?? existing.summary ?? "")
+                .trim()
+                .toLowerCase()
+          );
+        });
+
+        if (duplicate) {
+          throw new CalendarConflictError(
+            `An event named "${input.summary ?? existing.summary}" already exists in that exact slot. I did not create a duplicate event.`,
+          );
+        }
+      }
+
       const attendees = input.attendees?.map((email) => ({ email })) ?? [];
       const res = await client.googlecalendar.api.events.update({
         calendarId,
@@ -290,6 +440,9 @@ export const calendarService = {
       };
     } catch (error) {
       console.error("Error updating calendar event:", error);
+      if (error instanceof CalendarConflictError) {
+        throw error;
+      }
       handleCalendarError(error, "Failed to update calendar event.");
     }
   },
@@ -444,7 +597,7 @@ function handleCalendarError(error: any, fallbackMessage: string): never {
     msg.includes("token")
   ) {
     throw new Error(
-      "Google Calendar account is not connected. Please connect your Google Calendar in Settings first."
+      "Google Calendar account is not connected. Please connect your Google Calendar in Settings first.",
     );
   }
   throw new Error(fallbackMessage);

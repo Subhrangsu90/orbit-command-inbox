@@ -93,6 +93,77 @@ export const tools: FunctionTool[] = [
   },
   {
     type: "function",
+    name: "update_calendar_event",
+    description:
+      "Updates an existing Google Calendar event by event ID. Use only after the exact event ID is known from list_events or prior context.",
+    strict: false,
+    parameters: {
+      type: "object",
+      properties: {
+        id: {
+          type: "string",
+          description: "The Google Calendar event ID to update.",
+        },
+        calendarId: {
+          type: "string",
+          description:
+            "Optional calendar ID from list_events. Use it when available, especially for non-primary calendars.",
+        },
+        summary: {
+          type: "string",
+          description: "Optional updated event title/summary.",
+        },
+        description: {
+          type: "string",
+          description: "Optional updated event description.",
+        },
+        location: {
+          type: "string",
+          description: "Optional updated physical or virtual location.",
+        },
+        startTime: {
+          type: "string",
+          description:
+            "Optional updated start time in ISO-8601 format. Provide with endTime when moving/rescheduling.",
+        },
+        endTime: {
+          type: "string",
+          description:
+            "Optional updated end time in ISO-8601 format. Provide with startTime when moving/rescheduling.",
+        },
+        attendees: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional replacement list of attendee email addresses.",
+        },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    type: "function",
+    name: "delete_calendar_event",
+    description:
+      "Deletes an existing Google Calendar event by event ID. Use only after the exact event ID is known from list_events or prior context.",
+    strict: false,
+    parameters: {
+      type: "object",
+      properties: {
+        id: {
+          type: "string",
+          description: "The Google Calendar event ID to delete.",
+        },
+        calendarId: {
+          type: "string",
+          description:
+            "Optional calendar ID from list_events. Use it when available, especially for non-primary calendars.",
+        },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    type: "function",
     name: "search_emails",
     description:
       "Queries or searches emails. Allows searching by keyword, label, or query string.",
@@ -103,7 +174,7 @@ export const tools: FunctionTool[] = [
         q: {
           type: "string",
           description:
-            "Search query or keywords (e.g., 'from:friend@corsair.dev', 'meeting', 'project update').",
+            "Search query or keywords (e.g., 'from:iamsubhrangsubera@gmail.com', 'meeting', 'project update').",
         },
         mailbox: {
           type: "string",
@@ -131,6 +202,12 @@ export const tools: FunctionTool[] = [
             "The minimum start time to search events from (ISO-8601 string).",
         },
         q: { type: "string", description: "Query string to filter events." },
+        calendarIds: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Optional calendar IDs to search. Use IDs returned by prior calendar results when available.",
+        },
         maxResults: {
           type: "number",
           description: "Maximum number of events to return (default 10).",
