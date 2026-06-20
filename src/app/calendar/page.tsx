@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -35,6 +35,27 @@ import { EventFormModal } from "./_components/EventFormModal";
 import { Sidebar } from "./_components/Sidebar";
 
 export default function CalendarPage() {
+  return (
+    <Suspense
+      fallback={
+        <WorkspaceLayout wide={true}>
+          <div className="flex min-h-[50vh] items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <RefreshCw className="text-primary size-8 animate-spin" />
+              <p className="text-on-surface-variant animate-pulse text-xs font-semibold">
+                Initializing calendar...
+              </p>
+            </div>
+          </div>
+        </WorkspaceLayout>
+      }
+    >
+      <CalendarContainer />
+    </Suspense>
+  );
+}
+
+function CalendarContainer() {
   const searchParams = useSearchParams();
   const linkedEventId = searchParams.get("eventId");
   const linkedCalendarId = searchParams.get("calendarId") ?? undefined;
