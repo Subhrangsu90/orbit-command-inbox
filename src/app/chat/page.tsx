@@ -207,109 +207,110 @@ function ChatContainer() {
     <WorkspaceLayout>
       <div className="bg-background relative flex w-full flex-col">
         {/* Header */}
-        {!isInitialChatScreen && (
-          <div className="border-outline-variant/45 mx-auto flex w-full items-center justify-between gap-2 border-b px-3 py-3 sm:px-5 md:px-6">
-            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-              <div className="bg-primary-container text-on-primary-container shrink-0 rounded-2xl p-2.5 shadow-sm">
-                <Sparkles className="size-4.5 sm:size-5" />
-              </div>
-              <div className="min-w-0">
-                {isEditing ? (
-                  <div
-                    className="flex items-center gap-2"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      ref={renameInputRef}
-                      type="text"
-                      value={renameInput}
-                      onChange={(e) => setRenameInput(e.target.value)}
-                      onBlur={() =>
-                        activeRoomId && handleRenameSubmit(activeRoomId)
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && activeRoomId)
-                          handleRenameSubmit(activeRoomId);
-                        if (e.key === "Escape") setEditingRoomId(null);
-                      }}
-                      className="bg-background text-on-surface border-primary focus:ring-primary/35 w-full max-w-xs rounded-full border px-4 py-1.5 text-sm font-medium outline-none focus:ring-4"
-                    />
-                    <button
-                      onClick={() =>
-                        activeRoomId && handleRenameSubmit(activeRoomId)
-                      }
-                      className="hover:bg-primary-container text-primary rounded-xl p-1.5 transition"
-                      title="Save title"
-                    >
-                      <Check className="size-4" />
-                    </button>
-                    <button
-                      onClick={() => setEditingRoomId(null)}
-                      className="hover:bg-surface-container-high text-on-surface-variant rounded-xl p-1.5 transition"
-                      title="Cancel"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
-                    <h2 className="text-on-surface sm:text-title-md truncate font-sans text-sm font-bold">
-                      {activeRoom?.title ?? "Tacta Copilot"}
-                    </h2>
-                    {activeRoom && (
-                      <div className="flex shrink-0 items-center gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (activeRoomId) {
-                              setEditingRoomId(activeRoomId);
-                              setRenameInput(activeRoom.title);
-                            }
-                          }}
-                          className="hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded-xl p-1.5 transition"
-                          title="Rename Session"
-                        >
-                          <Edit2 className="size-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) =>
-                            activeRoomId && handleDeleteRoom(e, activeRoomId)
-                          }
-                          className="hover:bg-error/15 text-on-surface-variant hover:text-error rounded-xl p-1.5 transition"
-                          title="Delete Session"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <p className="text-body-sm text-on-surface-variant mt-0.5 hidden items-center gap-1.5 sm:flex">
-                  <span className="inline-block size-2 rounded-full bg-emerald-500"></span>
-                  Draft-first email and calendar copilot
-                </p>
-              </div>
+        {/* Header */}
+        <div className={`border-outline-variant/45 mx-auto flex w-full items-center justify-between gap-2 border-b px-3 py-3 sm:px-5 md:px-6 ${
+          isInitialChatScreen ? "md:hidden" : ""
+        }`}>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="bg-primary-container text-on-primary-container shrink-0 rounded-2xl p-2.5 shadow-sm">
+              <Sparkles className="size-4.5 sm:size-5" />
             </div>
-
-            {/* Quick action: New Chat & Sessions button */}
-            <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-              <Button
-                variant="outline"
-                onClick={() => setShowHistoryOnMobile(!showHistoryOnMobile)}
-                className="border-outline-variant/70 hover:bg-surface-container-high flex h-9 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold md:hidden"
-              >
-                <span className="material-symbols-outlined text-sm leading-none">
-                  history
-                </span>
-                <span className="hidden min-[380px]:inline">Sessions</span>
-              </Button>
+            <div className="min-w-0">
+              {isEditing ? (
+                <div
+                  className="flex items-center gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    ref={renameInputRef}
+                    type="text"
+                    value={renameInput}
+                    onChange={(e) => setRenameInput(e.target.value)}
+                    onBlur={() =>
+                      activeRoomId && handleRenameSubmit(activeRoomId)
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && activeRoomId)
+                        handleRenameSubmit(activeRoomId);
+                      if (e.key === "Escape") setEditingRoomId(null);
+                    }}
+                    className="bg-background text-on-surface border-primary focus:ring-primary/35 w-full max-w-xs rounded-full border px-4 py-1.5 text-sm font-medium outline-none focus:ring-4"
+                  />
+                  <button
+                    onClick={() =>
+                      activeRoomId && handleRenameSubmit(activeRoomId)
+                    }
+                    className="hover:bg-primary-container text-primary rounded-xl p-1.5 transition"
+                    title="Save title"
+                  >
+                    <Check className="size-4" />
+                  </button>
+                  <button
+                    onClick={() => setEditingRoomId(null)}
+                    className="hover:bg-surface-container-high text-on-surface-variant rounded-xl p-1.5 transition"
+                    title="Cancel"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
+                  <h2 className="text-on-surface sm:text-title-md truncate font-sans text-sm font-bold">
+                    {activeRoom?.title ?? "Tacta Copilot"}
+                  </h2>
+                  {activeRoom && (
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (activeRoomId) {
+                            setEditingRoomId(activeRoomId);
+                            setRenameInput(activeRoom.title);
+                          }
+                        }}
+                        className="hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface rounded-xl p-1.5 transition"
+                        title="Rename Session"
+                      >
+                        <Edit2 className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) =>
+                          activeRoomId && handleDeleteRoom(e, activeRoomId)
+                        }
+                        className="hover:bg-error/15 text-on-surface-variant hover:text-error rounded-xl p-1.5 transition"
+                        title="Delete Session"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              <p className="text-body-sm text-on-surface-variant mt-0.5 hidden items-center gap-1.5 sm:flex">
+                <span className="inline-block size-2 rounded-full bg-emerald-500"></span>
+                Draft-first email and calendar copilot
+              </p>
             </div>
           </div>
-        )}
+
+          {/* Quick action: New Chat & Sessions button */}
+          <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+            <Button
+              variant="outline"
+              onClick={() => setShowHistoryOnMobile(!showHistoryOnMobile)}
+              className="border-outline-variant/70 hover:bg-surface-container-high flex h-9 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold md:hidden"
+            >
+              <span className="material-symbols-outlined text-sm leading-none">
+                history
+              </span>
+              <span className="hidden min-[380px]:inline">Sessions</span>
+            </Button>
+          </div>
+        </div>
 
         {/* Mobile History Drawer / Overlay */}
-        {!isInitialChatScreen && showHistoryOnMobile && (
+        {showHistoryOnMobile && (
           <div className="border-outline-variant/60 bg-surface-container-lowest/95 animate-fade-in absolute inset-x-3 top-[65px] z-30 rounded-2xl border p-3 shadow-xl backdrop-blur md:hidden">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-on-surface text-xs font-bold tracking-wider uppercase">
