@@ -200,13 +200,12 @@ function ChatContainer() {
   }, [messages, chatInRoomMutation.isPending]);
 
   const activeRoom = rooms.find((r) => r.id === activeRoomId);
-  const isEditing = activeRoomId === editingRoomId;
+  const isEditing = !!activeRoomId && activeRoomId === editingRoomId;
   const isInitialChatScreen = !isLoadingHistory && messages.length === 0;
 
   return (
     <WorkspaceLayout>
       <div className="bg-background relative flex w-full flex-col">
-        {/* Header */}
         {/* Header */}
         <div className={`border-outline-variant/45 mx-auto flex w-full items-center justify-between gap-2 border-b px-3 py-3 sm:px-5 md:px-6 ${
           isInitialChatScreen ? "md:hidden" : ""
