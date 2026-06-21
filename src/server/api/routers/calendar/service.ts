@@ -1,4 +1,5 @@
 import { corsair, ensureCorsairConfigured } from "~/server/corsair";
+import { emailsService } from "../emails/service";
 
 class CalendarConflictError extends Error {
   constructor(message: string) {
@@ -147,71 +148,54 @@ export const calendarService = {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
 
-    // Custom OAuth helper to resolve token
-    const [s, c, d] = await Promise.all([
-      client.googlecalendar.keys.get_access_token(),
-      client.googlecalendar.keys.get_expires_at(),
-      client.googlecalendar.keys.get_refresh_token(),
-    ]);
-    if (!d) throw new Error("No refresh token");
-    const creds =
-      await client.googlecalendar.keys.get_integration_credentials();
-
-    const now = Math.floor(Date.now() / 1000);
-    let token = s;
-    if (!s || !c || Number(c) <= now + 300) {
-      const res = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          client_id: creds.client_id!,
-          client_secret: creds.client_secret!,
-          refresh_token: d,
-          grant_type: "refresh_token",
-        }),
+    // Corsair exposes no calendar-list API endpoint. For now we surface just the
+    // connected account's primary calendar, using getMany("primary") to confirm
+    // the calendar is reachable. TODO: make this dynamic (enumerate all
+    // calendars) once a Corsair-native source for the full list is available.
+    try {
+      await client.googlecalendar.api.events.getMany({
+        calendarId: "primary",
+        maxResults: 1,
+        singleEvents: true,
+        orderBy: "startTime",
       });
-      if (!res.ok) {
-        throw new Error(`Failed to refresh token: ${await res.text()}`);
-      }
-      const data = (await res.json()) as {
-        access_token: string;
-        expires_in: number;
-      };
-      await Promise.all([
-        client.googlecalendar.keys.set_access_token(data.access_token),
-        client.googlecalendar.keys.set_expires_at(
-          String(now + data.expires_in),
-        ),
-      ]);
-      token = data.access_token;
-    }
-
-    const res = await fetch(
-      "https://www.googleapis.com/calendar/v3/users/me/calendarList",
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-    if (!res.ok) {
-      const text = await res.text();
+    } catch (error) {
+      console.error("Error reaching primary calendar:", error);
+      const msg = error instanceof Error ? error.message : String(error);
       if (
-        text.includes("Account not found") ||
-        text.includes("credentials") ||
-        text.includes("token")
+        msg.includes("Account not found") ||
+        msg.includes("credentials") ||
+        msg.includes("token")
       ) {
         return {
           calendars: [],
           notConnected: true,
         };
       }
-      throw new Error(`Failed to fetch Google Calendars list: ${text}`);
+      return {
+        calendars: [],
+      };
     }
 
-    const data = (await res.json()) as { items?: any[] };
+    // Label the primary calendar with the connected account email when we can.
+    let connectedEmail: string | undefined;
+    try {
+      connectedEmail = (
+        await emailsService.getConnectedProfile(tenantId)
+      ).email?.trim();
+    } catch {
+      connectedEmail = undefined;
+    }
+
     return {
-      calendars: data.items ?? [],
+      calendars: [
+        {
+          id: "primary",
+          summary: connectedEmail ?? "My Calendar",
+          primary: true,
+          accessRole: "owner",
+        },
+      ],
     };
   },
 
