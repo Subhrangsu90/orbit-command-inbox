@@ -5,6 +5,7 @@ import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "~/trpc/react";
 import { Logo } from "./Logo";
+import { authClient } from "~/server/better-auth/client";
 
 type SidebarProps = {
   user: {
@@ -19,11 +20,17 @@ type SidebarProps = {
 
 export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
   const [isBrandHovered, setIsBrandHovered] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const utils = api.useUtils();
   const currentMailbox = searchParams.get("mailbox") ?? "inbox";
+
+  const handleLogout = async () => {
+    await authClient.signOut();
+    window.location.reload();
+  };
 
   const { data: rooms = [] } = api.agent.listRooms.useQuery(undefined, {
     enabled: !!user,
@@ -122,19 +129,135 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
           </Link>
         </div>
 
-        {/* Settings Icon (Bottom) */}
-        <div className="w-full px-2">
-          <Link
-            href="/settings"
-            className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
-              activeTab === "settings"
+        {/* Settings & Profile Popover Trigger (Bottom) */}
+        <div className="w-full px-2 relative">
+          {isProfileMenuOpen && (
+            <div 
+              className="fixed inset-0 z-40 cursor-default" 
+              onClick={() => setIsProfileMenuOpen(false)} 
+            />
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+            className={`flex items-center justify-center size-12 rounded-2xl transition-all relative z-50 cursor-pointer ${
+              isProfileMenuOpen || activeTab === "settings"
                 ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
                 : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
             }`}
-            title="Settings"
+            title="Profile & Settings"
           >
-            <span className="material-symbols-outlined text-2xl font-bold">settings</span>
-          </Link>
+            {user?.image ? (
+              <img
+                src={user.image}
+                alt="User Profile"
+                className="size-8 rounded-full object-cover border border-outline-variant/50"
+              />
+            ) : (
+              <div className="size-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center font-bold text-xs border border-outline-variant/30">
+                {user?.name?.charAt(0).toUpperCase() ?? "U"}
+              </div>
+            )}
+          </button>
+
+          {/* Upward Popover Menu */}
+          {isProfileMenuOpen && (
+            <div className="absolute bottom-14 left-4 z-50 w-60 rounded-2xl bg-surface border border-outline-variant text-on-surface shadow-2xl p-2 animate-scale-in flex flex-col font-sans">
+              
+              {/* Profile Header */}
+              <div className="flex items-center gap-3 p-3 border-b border-outline-variant/30">
+                {user?.image ? (
+                  <img
+                    src={user.image}
+                    alt="User Profile"
+                    className="size-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="size-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center font-bold text-xs">
+                    {user?.name?.charAt(0).toUpperCase() ?? "U"}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-on-surface truncate">{user?.name}</p>
+                  <p className="text-[10px] text-on-surface-variant truncate mt-0.5">{user?.email}</p>
+                </div>
+              </div>
+
+              {/* Menu Links */}
+              <div className="py-1 space-y-0.5">
+                <Link
+                  href="/settings?tab=account"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
+                    account_circle
+                  </span>
+                  <span>Profile</span>
+                </Link>
+
+                <Link
+                  href="/settings?tab=appearance"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
+                    palette
+                  </span>
+                  <span>Personalization</span>
+                </Link>
+
+                <Link
+                  href="/settings?tab=appearance"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
+                    settings
+                  </span>
+                  <span>Settings</span>
+                </Link>
+
+                <Link
+                  href="/settings?tab=shortcuts"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
+                    keyboard
+                  </span>
+                  <span>Keyboard shortcuts</span>
+                </Link>
+
+                <Link
+                  href="/settings?tab=integrations"
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
+                    extension
+                  </span>
+                  <span>Connected services</span>
+                </Link>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    void handleLogout();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-error/10 hover:text-error transition-colors text-left cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
+                    logout
+                  </span>
+                  <span>Log out</span>
+                </button>
+              </div>
+
+            </div>
+          )}
         </div>
       </div>
 

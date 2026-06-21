@@ -74,7 +74,7 @@ export function WorkspaceLayout({
 
       if (pressedShortcut.toLowerCase() === configuredShortcut.toLowerCase()) {
         e.preventDefault();
-        router.push("/settings");
+        router.push("/settings?tab=appearance");
       }
     }
 

@@ -1,92 +1,22 @@
 import { createOpenAIChatClient } from "~/server/api/llm";
 import type { ResponseFunctionToolCall } from "openai/resources/responses/responses";
 import { emailsService } from "../emails/service";
-import { calendarService } from "../calendar/service";
-import { tools } from "./tools";
 import { db } from "~/server/db";
 import { user } from "~/server/db/schema/auth";
 import { eq } from "drizzle-orm";
+import {
+  allAgentTools,
+  findAgentTool,
+  allSystemPromptSections,
+} from "~/server/integrations/registry";
+import type {
+  ExecutedAction,
+  CalendarActionEvent,
+} from "~/server/integrations/types";
 
 export type Message = {
   role: "user" | "assistant" | "system";
   content: string;
-};
-
-export type ExecutedAction =
-  | {
-      type: "send_email";
-      to: string;
-      subject: string;
-      body?: string;
-      success: boolean;
-    }
-  | {
-      type: "create_email_draft";
-      to: string;
-      subject: string;
-      body: string;
-      draftId: string;
-      messageId?: string;
-      mailLink?: string;
-      senderName?: string;
-      senderEmail?: string;
-      success: boolean;
-    }
-  | { type: "reply_to_email"; id: string; success: boolean }
-  | {
-      type: "create_calendar_event";
-      eventId?: string;
-      calendarLink?: string;
-      meetingLink?: string;
-      summary: string;
-      startTime: string;
-      endTime: string;
-      description?: string;
-      location?: string;
-      attendees?: string[];
-      event?: CalendarActionEvent;
-      success: boolean;
-    }
-  | {
-      type: "update_calendar_event";
-      eventId: string;
-      summary?: string;
-      startTime?: string;
-      endTime?: string;
-      description?: string;
-      location?: string;
-      attendees?: string[];
-      event?: CalendarActionEvent;
-      success: boolean;
-    }
-  | {
-      type: "delete_calendar_event";
-      eventId: string;
-      summary?: string;
-      startTime?: string;
-      endTime?: string;
-      description?: string;
-      location?: string;
-      attendees?: string[];
-      calendarLink?: string;
-      meetingLink?: string;
-      event?: CalendarActionEvent;
-      success: boolean;
-    }
-  | { type: "search_emails"; query: string; count: number }
-  | { type: "list_events"; count: number; events?: CalendarActionEvent[] };
-
-type CalendarActionEvent = {
-  id?: string;
-  calendarId?: string;
-  summary?: string;
-  startTime?: string;
-  endTime?: string;
-  description?: string;
-  location?: string;
-  attendees?: string[];
-  calendarLink?: string;
-  meetingLink?: string;
 };
 
 type ResponseInputItem = {
@@ -134,30 +64,6 @@ function formatSenderIdentity(identity: SenderIdentity) {
   }
 
   return identity.name ?? identity.email ?? "the connected Gmail account";
-}
-
-function summarizeCalendarEvent(
-  event: any,
-  fallbackCalendarId?: string,
-): CalendarActionEvent {
-  return {
-    id: event?.id,
-    calendarId: event?.calendarId ?? fallbackCalendarId,
-    summary: event?.summary,
-    startTime: event?.start?.dateTime ?? event?.start?.date,
-    endTime: event?.end?.dateTime ?? event?.end?.date,
-    description: event?.description,
-    location: event?.location,
-    attendees: Array.isArray(event?.attendees)
-      ? event.attendees
-          .map((attendee: any) => attendee?.email)
-          .filter(
-            (email: unknown): email is string => typeof email === "string",
-          )
-      : undefined,
-    calendarLink: event?.htmlLink,
-    meetingLink: event?.hangoutLink,
-  };
 }
 
 function summarizeModelError(error: unknown) {
@@ -241,22 +147,7 @@ Core behavior:
 - If a required detail is missing for an irreversible action, ask one short follow-up question.
 - Use ISO-8601 times for calendar tools. Resolve relative dates from the current local date/time above.
 
-Email rules:
-- Always use create_email_draft before any new outbound email, even when the user says "send". The user must see the draft before it is sent.
-- Use send_email only after the user clearly confirms a draft or exact final content that was already shown in the conversation.
-- Use reply_to_email only when a concrete message id is available or was found via search_emails.
-- Email bodies should be polished plain text with greeting, concise body, and sign-off when appropriate.
-- For sign-offs, prefer "Best regards," followed by the connected sender name when available; if no name is available, use the connected sender email or omit the name.
-
-Calendar and invitation rules:
-- Before scheduling a meeting or event, check the requested time slot with list_events when the user gives a concrete date/time.
-- Before updating or deleting a calendar event, use list_events to find the exact event id unless the id is already available in the conversation.
-- Do not stack meetings or create duplicate events in the same busy time slot. If the slot is busy, tell the user what conflicts and ask for a different time.
-- Use create_calendar_event for meetings, reminders, calls, interviews, invites, or scheduling only after the requested slot appears available.
-- Use update_calendar_event for rescheduling or changing a known event. Use delete_calendar_event only when the user clearly asks to cancel/delete a known event.
-- If attendees are included, create_calendar_event sends Google Calendar invitation updates automatically.
-- If the user asks for an invitation email too, create the calendar event first, then create_email_draft mentioning the meeting details and that a calendar invite was sent. Do not send the email until the user confirms the shown draft.
-- Do not invent a meeting link unless the user provides one; put provided video/meeting links in the event location or description and in the email body.
+${allSystemPromptSections()}
 
 After tools:
 - Summarize exactly what happened: drafted, sent, scheduled, searched, or listed.
@@ -270,7 +161,6 @@ After tools:
         content: message.content,
       }));
 
-    // Map tool names to execution functions
     const actionsTaken: ExecutedAction[] = [];
     let responseId: string | null = null;
     let nextInput: unknown = conversationInput;
@@ -287,7 +177,7 @@ After tools:
           input: nextInput as any,
           instructions: systemPrompt,
           previous_response_id: responseId,
-          tools,
+          tools: allAgentTools().map((t) => t.definition),
           tool_choice: "auto",
         });
       } catch (error) {
@@ -336,223 +226,18 @@ After tools:
         let toolOutput = "";
 
         try {
-          if (functionName === "send_email") {
-            const res = await emailsService.send(tenantId, {
-              to: functionArgs.to,
-              subject: functionArgs.subject,
-              body: functionArgs.body,
+          const tool = findAgentTool(functionName);
+          if (tool) {
+            const result = await tool.execute({
+              tenantId,
+              args: functionArgs,
+              senderIdentity: {
+                name: senderIdentity.name,
+                email: senderIdentity.email,
+              },
             });
-            actionsTaken.push({
-              type: "send_email",
-              to: functionArgs.to,
-              subject: functionArgs.subject,
-              body: functionArgs.body,
-              success: res.success,
-            });
-            toolOutput = JSON.stringify({ success: true, messageId: res.id });
-          } else if (functionName === "create_email_draft") {
-            const res = await emailsService.createDraft(tenantId, {
-              to: functionArgs.to,
-              subject: functionArgs.subject,
-              body: functionArgs.body,
-            });
-            actionsTaken.push({
-              type: "create_email_draft",
-              to: functionArgs.to,
-              subject: functionArgs.subject,
-              body: functionArgs.body,
-              draftId: res.id,
-              messageId: res.messageId,
-              mailLink: res.messageId
-                ? `/mail/${encodeURIComponent(res.messageId)}?mailbox=drafts&draftId=${encodeURIComponent(res.id)}`
-                : "/mail?mailbox=drafts",
-              senderName: senderIdentity.name,
-              senderEmail: senderIdentity.email,
-              success: res.success,
-            });
-            toolOutput = JSON.stringify({
-              success: true,
-              draftId: res.id,
-              messageId: res.messageId,
-              mailLink: res.messageId
-                ? `/mail/${encodeURIComponent(res.messageId)}?mailbox=drafts&draftId=${encodeURIComponent(res.id)}`
-                : "/mail?mailbox=drafts",
-            });
-          } else if (functionName === "reply_to_email") {
-            const res = await emailsService.reply(tenantId, {
-              id: functionArgs.id,
-              body: functionArgs.body,
-            });
-            actionsTaken.push({
-              type: "reply_to_email",
-              id: functionArgs.id,
-              success: res.success,
-            });
-            toolOutput = JSON.stringify({
-              success: true,
-              threadId: res.threadId,
-            });
-          } else if (functionName === "create_calendar_event") {
-            const res = await calendarService.create(tenantId, {
-              summary: functionArgs.summary,
-              description: functionArgs.description,
-              location: functionArgs.location,
-              startTime: functionArgs.startTime,
-              endTime: functionArgs.endTime,
-              attendees: functionArgs.attendees,
-            });
-            const event = {
-              id: res.id,
-              summary: functionArgs.summary,
-              startTime: functionArgs.startTime,
-              endTime: functionArgs.endTime,
-              description: functionArgs.description,
-              location: functionArgs.location,
-              attendees: functionArgs.attendees,
-              calendarLink: res.htmlLink,
-              meetingLink: res.hangoutLink,
-            } satisfies CalendarActionEvent;
-            actionsTaken.push({
-              type: "create_calendar_event",
-              eventId: res.id,
-              calendarLink: res.htmlLink,
-              meetingLink: res.hangoutLink,
-              summary: functionArgs.summary,
-              startTime: functionArgs.startTime,
-              endTime: functionArgs.endTime,
-              description: functionArgs.description,
-              location: functionArgs.location,
-              attendees: functionArgs.attendees,
-              event,
-              success: res.success,
-            });
-            toolOutput = JSON.stringify({
-              success: true,
-              eventId: res.id,
-              calendarLink: res.htmlLink,
-              meetingLink: res.hangoutLink,
-              summary: functionArgs.summary,
-              startTime: functionArgs.startTime,
-              endTime: functionArgs.endTime,
-              description: functionArgs.description,
-              location: functionArgs.location,
-              attendees: functionArgs.attendees,
-            });
-          } else if (functionName === "update_calendar_event") {
-            const res = await calendarService.update(tenantId, {
-              id: functionArgs.id,
-              calendarId: functionArgs.calendarId,
-              summary: functionArgs.summary,
-              description: functionArgs.description,
-              location: functionArgs.location,
-              startTime: functionArgs.startTime,
-              endTime: functionArgs.endTime,
-              attendees: functionArgs.attendees,
-            });
-            const updatedEvent = summarizeCalendarEvent(
-              await calendarService.get(tenantId, {
-                id: res.id,
-                calendarId: functionArgs.calendarId,
-              }),
-            );
-            actionsTaken.push({
-              type: "update_calendar_event",
-              eventId: res.id,
-              summary: updatedEvent.summary ?? functionArgs.summary,
-              startTime: updatedEvent.startTime ?? functionArgs.startTime,
-              endTime: updatedEvent.endTime ?? functionArgs.endTime,
-              description: updatedEvent.description ?? functionArgs.description,
-              location: updatedEvent.location ?? functionArgs.location,
-              attendees: updatedEvent.attendees ?? functionArgs.attendees,
-              event: updatedEvent,
-              success: res.success,
-            });
-            toolOutput = JSON.stringify({
-              success: true,
-              eventId: res.id,
-              summary: functionArgs.summary,
-              startTime: functionArgs.startTime,
-              endTime: functionArgs.endTime,
-              description: functionArgs.description,
-              location: functionArgs.location,
-              attendees: functionArgs.attendees,
-            });
-          } else if (functionName === "delete_calendar_event") {
-            const deletedEvent = summarizeCalendarEvent(
-              await calendarService.get(tenantId, {
-                id: functionArgs.id,
-                calendarId: functionArgs.calendarId,
-              }),
-              functionArgs.calendarId,
-            );
-            const res = await calendarService.delete(tenantId, {
-              id: functionArgs.id,
-              calendarId: functionArgs.calendarId,
-            });
-            actionsTaken.push({
-              type: "delete_calendar_event",
-              eventId: functionArgs.id,
-              summary: deletedEvent.summary,
-              startTime: deletedEvent.startTime,
-              endTime: deletedEvent.endTime,
-              description: deletedEvent.description,
-              location: deletedEvent.location,
-              attendees: deletedEvent.attendees,
-              calendarLink: deletedEvent.calendarLink,
-              meetingLink: deletedEvent.meetingLink,
-              event: deletedEvent,
-              success: res.success,
-            });
-            toolOutput = JSON.stringify({
-              success: true,
-              eventId: functionArgs.id,
-              event: deletedEvent,
-            });
-          } else if (functionName === "search_emails") {
-            const res = await emailsService.list(tenantId, {
-              q: functionArgs.q,
-              mailbox: functionArgs.mailbox || "inbox",
-              maxResults: functionArgs.maxResults || 10,
-            });
-            actionsTaken.push({
-              type: "search_emails",
-              query: functionArgs.q || "",
-              count: res.messages.length,
-            });
-            // Send summarized info of messages back to model
-            const simplifiedMessages = res.messages.map((m) => ({
-              id: m.id,
-              subject: m.subject,
-              from: m.from,
-              date: m.date,
-              snippet: m.snippet,
-            }));
-            toolOutput = JSON.stringify({ messages: simplifiedMessages });
-          } else if (functionName === "list_events") {
-            const res = await calendarService.list(tenantId, {
-              timeMin: functionArgs.timeMin,
-              q: functionArgs.q,
-              maxResults: functionArgs.maxResults || 10,
-              calendarIds: functionArgs.calendarIds,
-            });
-            const events = res.events.map((event) =>
-              summarizeCalendarEvent(event),
-            );
-            actionsTaken.push({
-              type: "list_events",
-              count: res.events.length,
-              events,
-            });
-            const simplifiedEvents = events.map((e) => ({
-              id: e.id,
-              summary: e.summary,
-              startTime: e.startTime,
-              endTime: e.endTime,
-              description: e.description,
-              location: e.location,
-              attendees: e.attendees,
-            }));
-            toolOutput = JSON.stringify({ events: simplifiedEvents });
+            actionsTaken.push(result.action);
+            toolOutput = result.output;
           } else {
             toolOutput = JSON.stringify({
               error: `Unknown tool: ${functionName}`,

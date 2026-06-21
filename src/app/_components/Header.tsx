@@ -40,23 +40,12 @@ export function Header({ user }: HeaderProps) {
           }
         />
         
-        {/* Settings Gear Button with custom shortcut tooltip */}
-        <Link
-          aria-label="Open settings"
-          className="relative grid size-9 place-items-center rounded-full text-on-surface-variant transition-all hover:bg-surface-container-high hover:text-primary sm:size-10"
-          title={`Settings (${preferences.settingsShortcut || "Alt+G"})`}
-          href="/settings"
-        >
-          <span className="material-symbols-outlined text-icon-md transition-transform duration-300 group-hover:rotate-45">
-            settings
-          </span>
-        </Link>
 
         <Link
           aria-label="Open profile"
-          className="shrink-0 rounded-full"
+          className="shrink-0 rounded-full md:hidden"
           title="Profile Settings"
-          href="/settings"
+          href="/settings?tab=account"
         >
           <img
             alt="User profile avatar"
@@ -67,7 +56,7 @@ export function Header({ user }: HeaderProps) {
         
         <button
           aria-label="Log out"
-          className="grid size-9 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-error sm:size-10"
+          className="grid size-9 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-error sm:size-10 md:hidden"
           onClick={() => void handleLogout()}
           title="Log out"
           type="button"

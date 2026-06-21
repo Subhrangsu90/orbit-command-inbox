@@ -2,35 +2,25 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { authClient } from "~/server/better-auth/client";
 import { useWorkspacePreferences } from "~/app/_components/workspacePreferencesContext";
 import { api } from "~/trpc/react";
 import { Logo } from "~/app/_components/Logo";
 import { Button } from "~/app/_components/ui/button";
-import { GmailIcon, GoogleCalendarIcon } from "~/app/_components/ui/icons";
+import { IntegrationConnectionList } from "~/app/_components/integrations/IntegrationConnectionList";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const session = authClient.useSession();
   const { preferences, isLoading: isLoadingPrefs, refetchPreferences } = useWorkspacePreferences();
 
-  // Integrations query & mutations
-  const { data: connections, isLoading: isLoadingConnections, refetch: refetchConnections } = api.integrations.getStatus.useQuery(undefined, {
+  // Integrations query (used to determine finish button label)
+  const { data: connections } = api.integrations.getStatus.useQuery(undefined, {
     enabled: !!session.data,
   });
 
   const completeOnboardingMutation = api.preferences.completeOnboarding.useMutation();
-  const disconnectGmailMutation = api.integrations.disconnectGmail.useMutation({
-    onSuccess: () => {
-      void refetchConnections();
-    },
-  });
-  const disconnectCalendarMutation = api.integrations.disconnectCalendar.useMutation({
-    onSuccess: () => {
-      void refetchConnections();
-    },
-  });
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -45,35 +35,6 @@ export default function OnboardingPage() {
       router.replace("/");
     }
   }, [session.isPending, session.data, isLoadingPrefs, preferences.onboarded, router]);
-
-  const getGmailUrlMutation = api.integrations.getGmailConnectUrl.useMutation();
-  const getCalendarUrlMutation = api.integrations.getCalendarConnectUrl.useMutation();
-
-  async function handleConnect(plugin: "gmail" | "googlecalendar") {
-    try {
-      if (plugin === "gmail") {
-        const { url } = await getGmailUrlMutation.mutateAsync({ redirectTo: "/chat" });
-        window.location.href = url;
-      } else {
-        const { url } = await getCalendarUrlMutation.mutateAsync({ redirectTo: "/chat" });
-        window.location.href = url;
-      }
-    } catch (e) {
-      console.error(`Failed to generate connect URL for ${plugin}:`, e);
-    }
-  }
-
-  async function handleDisconnect(plugin: "gmail" | "googlecalendar") {
-    try {
-      if (plugin === "gmail") {
-        await disconnectGmailMutation.mutateAsync();
-      } else {
-        await disconnectCalendarMutation.mutateAsync();
-      }
-    } catch (e) {
-      console.error(`Failed to disconnect ${plugin}:`, e);
-    }
-  }
 
   async function handleFinish() {
     try {
@@ -124,105 +85,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Integration Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-          
-          {/* Gmail Card */}
-          <div className={`p-6 border rounded-2xl flex flex-col justify-between gap-6 transition-all duration-200 ${
-            connections?.gmail 
-              ? "bg-primary/5 border-primary/20 shadow-sm" 
-              : "bg-surface-container-low border-outline-variant hover:border-outline"
-          }`}>
-            <div className="space-y-3">
-              <div className="size-10 rounded-xl grid place-items-center bg-surface-container-high border border-outline-variant shadow-inner p-2.5">
-                <GmailIcon className="size-full" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-on-surface">Gmail Account</h3>
-                <p className="text-2xs text-on-surface-variant leading-relaxed mt-1">
-                  Read, route, and compose emails automatically via command rules.
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              {connections?.gmail ? (
-                <div className="flex flex-col gap-2">
-                  <span className="inline-flex self-start items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-2xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    <CheckCircle2 className="size-3" /> Connected
-                  </span>
-                  <Button
-                    variant="text"
-                    size="sm"
-                    loading={disconnectGmailMutation.isPending}
-                    onClick={() => void handleDisconnect("gmail")}
-                    className="text-3xs font-semibold !text-error hover:underline p-0 justify-start h-auto"
-                  >
-                    Disconnect account
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="md"
-                  loading={getGmailUrlMutation.isPending}
-                  onClick={() => void handleConnect("gmail")}
-                  className="w-full text-2xs font-bold !rounded-xl shadow-sm"
-                >
-                  Connect Gmail
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Calendar Card */}
-          <div className={`p-6 border rounded-2xl flex flex-col justify-between gap-6 transition-all duration-200 ${
-            connections?.calendar 
-              ? "bg-primary/5 border-primary/20 shadow-sm" 
-              : "bg-surface-container-low border-outline-variant hover:border-outline"
-          }`}>
-            <div className="space-y-3">
-              <div className="size-10 rounded-xl grid place-items-center bg-surface-container-high border border-outline-variant shadow-inner p-2.5">
-                <GoogleCalendarIcon className="size-full" />
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-on-surface">Google Calendar</h3>
-                <p className="text-2xs text-on-surface-variant leading-relaxed mt-1">
-                  Synchronize events, process scheduled invites, and confirm slots.
-                </p>
-              </div>
-            </div>
-
-            <div className="pt-2">
-              {connections?.calendar ? (
-                <div className="flex flex-col gap-2">
-                  <span className="inline-flex self-start items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-2xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    <CheckCircle2 className="size-3" /> Connected
-                  </span>
-                  <Button
-                    variant="text"
-                    size="sm"
-                    loading={disconnectCalendarMutation.isPending}
-                    onClick={() => void handleDisconnect("googlecalendar")}
-                    className="text-3xs font-semibold !text-error hover:underline p-0 justify-start h-auto"
-                  >
-                    Disconnect calendar
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="primary"
-                  size="md"
-                  loading={getCalendarUrlMutation.isPending}
-                  onClick={() => void handleConnect("googlecalendar")}
-                  className="w-full text-2xs font-bold !rounded-xl shadow-sm"
-                >
-                  Connect Calendar
-                </Button>
-              )}
-            </div>
-          </div>
-
-        </div>
+        <IntegrationConnectionList variant="onboarding" />
 
         {/* Footer Actions */}
         <div className="pt-6 max-w-[32rem] mx-auto border-t border-outline-variant flex flex-col items-center gap-3">

@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Database,
   RefreshCw,
+  SlidersHorizontal,
 } from "lucide-react";
 import { WorkspaceLayout } from "~/app/_components/WorkspaceLayout";
 import { useWorkspacePreferences } from "~/app/_components/workspacePreferencesContext";
@@ -63,6 +64,9 @@ function CalendarContainer() {
   const { data: connections, isLoading: isLoadingConnections } =
     api.corsair.getConnections.useQuery();
   const isConnected = !!connections?.googlecalendar;
+
+  // Mobile sidebar drawer state
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // View settings
   const [viewMode, setViewMode] = useState<"day" | "week" | "month" | "year">(
@@ -727,84 +731,101 @@ function CalendarContainer() {
         {/* Main Calendar Content (Left side, flex-1) */}
         <div className="min-w-0 flex-1 space-y-6">
           {/* Calendar Header Section (Compact Google Calendar Style) */}
-          <div className="border-outline-variant flex flex-col justify-between gap-4 border-b pb-4 md:flex-row md:items-center">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="bg-primary/10 text-primary border-primary/20 flex size-10 items-center justify-center rounded-xl border shadow-sm">
-                <CalendarRange className="text-primary size-5" />
+          <div className="border-outline-variant flex flex-col gap-4 border-b pb-4 lg:flex-row lg:items-center lg:justify-between">
+            {/* Left: Title + Nav Controls + Range Label */}
+            <div className="flex flex-wrap items-center gap-3 md:gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 text-primary border-primary/20 flex size-10 items-center justify-center rounded-xl border shadow-sm">
+                  <CalendarRange className="text-primary size-5" />
+                </div>
+                <h2 className="text-on-surface font-serif text-lg md:text-xl font-bold tracking-tight">
+                  Calendar
+                </h2>
               </div>
-              <h2 className="text-on-surface font-serif text-xl font-bold tracking-tight">
-                Calendar
-              </h2>
+
+              {isCalConnected && (
+                <div className="flex items-center gap-2 md:border-l md:border-outline-variant/60 md:pl-4">
+                  {/* Navigation Controls */}
+                  <div className="bg-surface-container border-outline-variant flex items-center overflow-hidden rounded-lg border">
+                    <button
+                      onClick={handlePrev}
+                      className="hover:bg-surface-container-high border-outline-variant text-on-surface-variant hover:text-on-surface border-r p-1.5 transition"
+                      title="Previous range"
+                    >
+                      <ChevronLeft className="size-3.5" />
+                    </button>
+                    <button
+                      onClick={handleToday}
+                      className="text-3xs hover:bg-surface-container-high text-on-surface px-2.5 py-1 font-bold transition"
+                    >
+                      Today
+                    </button>
+                    <button
+                      onClick={handleNext}
+                      className="hover:bg-surface-container-high border-outline-variant text-on-surface-variant hover:text-on-surface border-l p-1.5 transition"
+                      title="Next range"
+                    >
+                      <ChevronRight className="size-3.5" />
+                    </button>
+                  </div>
+
+                  {/* View Range Label */}
+                  <h3 className="text-on-surface min-w-0 truncate text-xs md:text-sm font-semibold tracking-tight">
+                    {formatRangeLabel(currentDate, viewMode)}
+                  </h3>
+
+                  {searchQuery && (
+                    <span className="bg-primary/10 text-primary border-primary/20 shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-medium hidden sm:inline-block">
+                      Search matches
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
+            {/* Right: Search + View Selector + Filter Toggle */}
             {isCalConnected && (
-              <div className="border-outline-variant/60 flex min-w-0 flex-wrap items-center gap-2 md:gap-3 md:border-l md:pl-2">
-                {/* Navigation Controls */}
-                <div className="bg-surface-container border-outline-variant flex items-center overflow-hidden rounded-lg border">
-                  <button
-                    onClick={handlePrev}
-                    className="hover:bg-surface-container-high border-outline-variant text-on-surface-variant hover:text-on-surface border-r p-1.5 transition"
-                    title="Previous range"
-                  >
-                    <ChevronLeft className="size-3.5" />
-                  </button>
-                  <button
-                    onClick={handleToday}
-                    className="text-3xs hover:bg-surface-container-high text-on-surface px-2.5 py-1 font-bold transition"
-                  >
-                    Today
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    className="hover:bg-surface-container-high border-outline-variant text-on-surface-variant hover:text-on-surface border-l p-1.5 transition"
-                    title="Next range"
-                  >
-                    <ChevronRight className="size-3.5" />
-                  </button>
-                </div>
-
-                {/* View Range Label */}
-                <h3 className="text-on-surface min-w-0 truncate text-sm font-semibold tracking-tight">
-                  {formatRangeLabel(currentDate, viewMode)}
-                </h3>
-
-                {searchQuery && (
-                  <span className="bg-primary/10 text-primary border-primary/20 shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-medium">
-                    Search matches
-                  </span>
-                )}
-              </div>
-            )}
-
-            {isCalConnected && (
-              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-start sm:gap-3 w-full lg:w-auto">
                 {/* Search Box */}
-                <div className="relative min-w-0 flex-1 sm:flex-none">
+                <div className="relative w-full sm:w-44">
                   <input
                     type="text"
                     placeholder="Search events..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="border-outline-variant bg-surface-container text-2xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-primary h-8 w-full min-w-36 rounded-lg border pr-3 pl-8 focus:ring-1 focus:outline-none sm:w-48"
+                    className="border-outline-variant bg-surface-container text-2xs text-on-surface placeholder:text-on-surface-variant/50 focus:border-primary focus:ring-primary h-8 w-full rounded-lg border pr-3 pl-8 focus:ring-1 focus:outline-none"
                   />
                   <Search className="text-on-surface-variant/60 absolute top-2.5 left-2.5 size-3.5" />
                 </div>
 
-                {/* View Selector Pills */}
-                <div className="border-outline-variant bg-surface-container flex overflow-x-auto rounded-lg border p-0.5">
-                  {(["day", "week", "month", "year"] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      onClick={() => setViewMode(mode)}
-                      className={`text-3xs rounded-md px-2.5 py-1 font-semibold capitalize transition-all ${
-                        viewMode === mode
-                          ? "bg-primary text-on-primary scale-100 shadow-sm"
-                          : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
-                      }`}
-                    >
-                      {mode}
-                    </button>
-                  ))}
+                {/* View Selector & Filters */}
+                <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+                  {/* View Selector Pills */}
+                  <div className="border-outline-variant bg-surface-container flex overflow-x-auto rounded-lg border p-0.5 shrink-0">
+                    {(["day", "week", "month", "year"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setViewMode(mode)}
+                        className={`text-[10px] rounded-md px-2 md:px-2.5 py-1 font-semibold capitalize transition-all ${
+                          viewMode === mode
+                            ? "bg-primary text-on-primary scale-100 shadow-sm"
+                            : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high"
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Filters Toggle Button (Mobile/Tablet only) */}
+                  <button
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="lg:hidden flex items-center gap-1.5 h-8 px-2.5 bg-surface-container border border-outline-variant hover:bg-surface-container-high text-on-surface rounded-lg text-[10px] font-bold transition shadow-xs shrink-0"
+                    title="Toggle calendar filters"
+                  >
+                    <SlidersHorizontal className="size-3.5 text-primary" />
+                    <span className="hidden sm:inline">Filters</span>
+                  </button>
                 </div>
               </div>
             )}
@@ -923,34 +944,85 @@ function CalendarContainer() {
           )}
         </div>
 
-        {/* Sidebar Column (Right side, w-64) */}
+        {/* Desktop Sidebar (inline, hidden on mobile/tablet) */}
         {isCalConnected && (
-          <Sidebar
-            currentDate={currentDate}
-            setCurrentDate={setCurrentDate}
-            myCalendars={myCalendars}
-            otherCalendars={otherCalendars}
-            checkedCalendars={checkedCalendars}
-            setCheckedCalendars={setCheckedCalendars}
-            miniCalendarMonth={miniCalendarMonth}
-            setMiniCalendarMonth={setMiniCalendarMonth}
-            miniCalendarDays={miniCalendarDays}
-            searchPeopleQuery={searchPeopleQuery}
-            setSearchPeopleQuery={setSearchPeopleQuery}
-            handleCheckAvailability={handleCheckAvailability}
-            isCheckingAvailability={isCheckingAvailability}
-            availabilityError={availabilityError}
-            availabilityResult={availabilityResult}
-            localSearchQuery={localSearchQuery}
-            setLocalSearchQuery={setLocalSearchQuery}
-            isLoadingLocalSearch={isLoadingLocalSearch}
-            localSearchResults={localSearchResults}
-            setSelectedEventId={setSelectedEventId}
-            setIsCreateOpen={setIsCreateOpen}
-            setEventCalendarId={setEventCalendarId}
-            primaryCalendar={primaryCalendar}
-            allCalendars={allCalendars}
-          />
+          <div className="hidden lg:block">
+            <Sidebar
+              currentDate={currentDate}
+              setCurrentDate={setCurrentDate}
+              myCalendars={myCalendars}
+              otherCalendars={otherCalendars}
+              checkedCalendars={checkedCalendars}
+              setCheckedCalendars={setCheckedCalendars}
+              miniCalendarMonth={miniCalendarMonth}
+              setMiniCalendarMonth={setMiniCalendarMonth}
+              miniCalendarDays={miniCalendarDays}
+              searchPeopleQuery={searchPeopleQuery}
+              setSearchPeopleQuery={setSearchPeopleQuery}
+              handleCheckAvailability={handleCheckAvailability}
+              isCheckingAvailability={isCheckingAvailability}
+              availabilityError={availabilityError}
+              availabilityResult={availabilityResult}
+              localSearchQuery={localSearchQuery}
+              setLocalSearchQuery={setLocalSearchQuery}
+              isLoadingLocalSearch={isLoadingLocalSearch}
+              localSearchResults={localSearchResults}
+              setSelectedEventId={setSelectedEventId}
+              setIsCreateOpen={setIsCreateOpen}
+              setEventCalendarId={setEventCalendarId}
+              primaryCalendar={primaryCalendar}
+              allCalendars={allCalendars}
+            />
+          </div>
+        )}
+
+        {/* Mobile/Tablet Sidebar Drawer overlay */}
+        {isCalConnected && isSidebarOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end lg:hidden">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+            {/* Drawer Content */}
+            <div className="relative w-80 max-w-full bg-surface-container border-l border-outline-variant h-full p-6 shadow-2xl flex flex-col gap-6 animate-in slide-in-from-right duration-300 overflow-y-auto">
+              <div className="flex items-center justify-between border-b border-outline-variant/60 pb-3 shrink-0">
+                <h3 className="text-on-surface text-sm font-bold">Calendar Filters</h3>
+                <button
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="p-1.5 hover:bg-surface-container-high rounded-lg text-on-surface-variant transition"
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+              </div>
+              <Sidebar
+                currentDate={currentDate}
+                setCurrentDate={setCurrentDate}
+                myCalendars={myCalendars}
+                otherCalendars={otherCalendars}
+                checkedCalendars={checkedCalendars}
+                setCheckedCalendars={setCheckedCalendars}
+                miniCalendarMonth={miniCalendarMonth}
+                setMiniCalendarMonth={setMiniCalendarMonth}
+                miniCalendarDays={miniCalendarDays}
+                searchPeopleQuery={searchPeopleQuery}
+                setSearchPeopleQuery={setSearchPeopleQuery}
+                handleCheckAvailability={handleCheckAvailability}
+                isCheckingAvailability={isCheckingAvailability}
+                availabilityError={availabilityError}
+                availabilityResult={availabilityResult}
+                localSearchQuery={localSearchQuery}
+                setLocalSearchQuery={setLocalSearchQuery}
+                isLoadingLocalSearch={isLoadingLocalSearch}
+                localSearchResults={localSearchResults}
+                setSelectedEventId={setSelectedEventId}
+                setIsCreateOpen={setIsCreateOpen}
+                setEventCalendarId={setEventCalendarId}
+                primaryCalendar={primaryCalendar}
+                allCalendars={allCalendars}
+              />
+            </div>
+          </div>
         )}
       </div>
 
