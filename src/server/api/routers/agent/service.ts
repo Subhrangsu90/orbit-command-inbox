@@ -45,6 +45,7 @@ export type ExecutedAction =
       location?: string;
       attendees?: string[];
       event?: CalendarActionEvent;
+      warnings?: string[];
       success: boolean;
     }
   | {
@@ -57,6 +58,7 @@ export type ExecutedAction =
       location?: string;
       attendees?: string[];
       event?: CalendarActionEvent;
+      warnings?: string[];
       success: boolean;
     }
   | {
@@ -244,8 +246,9 @@ Email rules:
 Calendar and invitation rules:
 - Before scheduling a meeting or event, check the requested time slot with list_events when the user gives a concrete date/time.
 - Before updating or deleting a calendar event, use list_events to find the exact event id unless the id is already available in the conversation.
-- Do not stack meetings or create duplicate events in the same busy time slot. If the slot is busy, tell the user what conflicts and ask for a different time.
-- Use create_calendar_event for meetings, reminders, calls, interviews, invites, or scheduling only after the requested slot appears available.
+- Overlapping events are allowed, but creating or updating an event that overlaps an existing one returns a warning. When a tool result includes "warnings", tell the user about the overlap (what it conflicts with) so they can confirm the double-booking was intentional.
+- Exact duplicates (same title in the same exact start/end slot) are blocked. If that happens, tell the user the event already exists instead of retrying.
+- Use create_calendar_event for meetings, reminders, calls, interviews, invites, or scheduling.
 - Use update_calendar_event for rescheduling or changing a known event. Use delete_calendar_event only when the user clearly asks to cancel/delete a known event.
 - If attendees are included, create_calendar_event sends Google Calendar invitation updates automatically.
 - If the user asks for an invitation email too, create the calendar event first, then create_email_draft mentioning the meeting details and that a calendar invite was sent. Do not send the email until the user confirms the shown draft.
@@ -417,6 +420,7 @@ After tools:
               location: functionArgs.location,
               attendees: functionArgs.attendees,
               event,
+              warnings: res.warnings,
               success: res.success,
             });
             toolOutput = JSON.stringify({
@@ -430,6 +434,7 @@ After tools:
               description: functionArgs.description,
               location: functionArgs.location,
               attendees: functionArgs.attendees,
+              warnings: res.warnings,
             });
           } else if (functionName === "update_calendar_event") {
             const res = await calendarService.update(tenantId, {
@@ -458,6 +463,7 @@ After tools:
               location: updatedEvent.location ?? functionArgs.location,
               attendees: updatedEvent.attendees ?? functionArgs.attendees,
               event: updatedEvent,
+              warnings: res.warnings,
               success: res.success,
             });
             toolOutput = JSON.stringify({
@@ -469,6 +475,7 @@ After tools:
               description: functionArgs.description,
               location: functionArgs.location,
               attendees: functionArgs.attendees,
+              warnings: res.warnings,
             });
           } else if (functionName === "delete_calendar_event") {
             const deletedEvent = summarizeCalendarEvent(

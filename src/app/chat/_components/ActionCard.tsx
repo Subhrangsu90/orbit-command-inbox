@@ -162,6 +162,7 @@ export function CalendarActionCard({
   success,
   tone = "violet",
   showLinks = true,
+  warnings,
 }: {
   event: CalendarActionEvent;
   title: string;
@@ -169,6 +170,7 @@ export function CalendarActionCard({
   success: boolean;
   tone?: "violet" | "blue" | "red" | "amber";
   showLinks?: boolean;
+  warnings?: string[];
 }) {
   const toneClass = {
     violet: "bg-violet-500/10 text-violet-500",
@@ -211,6 +213,20 @@ export function CalendarActionCard({
         </div>
         <ActionStatus success={success} />
       </div>
+
+      {warnings && warnings.length > 0 && (
+        <div className="mt-3 rounded-xl bg-amber-500/10 p-3">
+          {warnings.map((warning, index) => (
+            <p
+              key={index}
+              className="text-body-sm flex items-start gap-1.5 text-amber-600 font-sans dark:text-amber-500"
+            >
+              <span aria-hidden>⚠️</span>
+              <span>{warning}</span>
+            </p>
+          ))}
+        </div>
+      )}
 
       {hasDetails && (
         <div className="mt-3 space-y-3">
@@ -455,6 +471,7 @@ export function ActionCard({ action }: { action: ExecutedAction }) {
           subtitle=""
           success={action.success}
           tone="violet"
+          warnings={action.warnings}
         />
       );
     }
@@ -476,6 +493,7 @@ export function ActionCard({ action }: { action: ExecutedAction }) {
           subtitle="Calendar event updated"
           success={action.success}
           tone="blue"
+          warnings={action.warnings}
         />
       );
     }

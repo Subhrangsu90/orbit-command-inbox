@@ -32,6 +32,7 @@ export const createEventInputModel = z.object({
 export const createEventOutputModel = z.object({
   id: z.string(),
   success: z.boolean(),
+  warnings: z.array(z.string()).optional(),
 });
 
 export const updateEventInputModel = z.object({
@@ -49,6 +50,7 @@ export const updateEventInputModel = z.object({
 export const updateEventOutputModel = z.object({
   id: z.string(),
   success: z.boolean(),
+  warnings: z.array(z.string()).optional(),
 });
 
 export const deleteEventInputModel = z.object({

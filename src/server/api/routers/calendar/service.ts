@@ -17,9 +17,18 @@ function intervalsOverlap(startA: Date, endA: Date, startB: Date, endB: Date) {
   return startA < endB && startB < endA;
 }
 
-function describeBusySlot(slot: { start?: string; end?: string }) {
-  if (!slot.start || !slot.end) return "an existing event";
-  return `${new Date(slot.start).toLocaleString()} - ${new Date(slot.end).toLocaleString()}`;
+function describeEventConflict(event: {
+  summary?: string;
+  start?: { dateTime?: string; date?: string };
+  end?: { dateTime?: string; date?: string };
+}) {
+  const title = event.summary?.trim() || "an existing event";
+  const start = getEventTimeValue(event.start);
+  const end = getEventTimeValue(event.end);
+  if (start && end) {
+    return `"${title}" (${new Date(start).toLocaleString()} - ${new Date(end).toLocaleString()})`;
+  }
+  return `"${title}"`;
 }
 
 export const calendarService = {
@@ -234,21 +243,7 @@ export const calendarService = {
         throw new Error("Event end time must be after a valid start time.");
       }
 
-      const availability =
-        await client.googlecalendar.api.calendar.getAvailability({
-          timeMin: requestedStart.toISOString(),
-          timeMax: requestedEnd.toISOString(),
-          items: [{ id: calendarId }],
-        });
-      const busySlots = availability.calendars?.[calendarId]?.busy ?? [];
-
-      if (busySlots.length > 0) {
-        throw new CalendarConflictError(
-          `Calendar slot is already busy from ${describeBusySlot(busySlots[0]!)}. I did not create a duplicate event.`,
-        );
-      }
-
-      const existingEvents = await client.googlecalendar.api.events.getMany({
+      const overlappingEvents = await client.googlecalendar.api.events.getMany({
         calendarId,
         timeMin: requestedStart.toISOString(),
         timeMax: requestedEnd.toISOString(),
@@ -256,7 +251,8 @@ export const calendarService = {
         orderBy: "startTime",
         maxResults: 10,
       });
-      const duplicate = (existingEvents.items ?? []).find((event: any) => {
+
+      const duplicate = (overlappingEvents.items ?? []).find((event: any) => {
         const eventStart = getEventTimeValue(event.start);
         const eventEnd = getEventTimeValue(event.end);
         return (
@@ -273,6 +269,29 @@ export const calendarService = {
       if (duplicate) {
         throw new CalendarConflictError(
           `An event named "${input.summary}" already exists in that exact slot. I did not create a duplicate event.`,
+        );
+      }
+
+      // Overlaps with other events are allowed, but surfaced as a warning so
+      // the user can decide whether the double-booking was intentional.
+      const warnings: string[] = [];
+      const conflict = (overlappingEvents.items ?? []).find((event: any) => {
+        if (event.status === "cancelled") return false;
+        const eventStartValue = getEventTimeValue(event.start);
+        const eventEndValue = getEventTimeValue(event.end);
+        if (!eventStartValue || !eventEndValue) return false;
+
+        return intervalsOverlap(
+          requestedStart,
+          requestedEnd,
+          new Date(eventStartValue),
+          new Date(eventEndValue),
+        );
+      });
+
+      if (conflict) {
+        warnings.push(
+          `This event overlaps with ${describeEventConflict(conflict)}.`,
         );
       }
 
@@ -300,6 +319,7 @@ export const calendarService = {
         htmlLink: res.htmlLink,
         hangoutLink: res.hangoutLink,
         success: true,
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
     } catch (error) {
       console.error("Error creating calendar event:", error);
@@ -328,6 +348,7 @@ export const calendarService = {
     const client = corsair.withTenant(tenantId);
     try {
       const calendarId = input.calendarId ?? "primary";
+      const warnings: string[] = [];
       const existing = await client.googlecalendar.api.events.get({
         calendarId,
         id: input.id,
@@ -356,27 +377,6 @@ export const calendarService = {
             orderBy: "startTime",
             maxResults: 10,
           });
-        const conflict = (overlappingEvents.items ?? []).find((event: any) => {
-          if (event.id === input.id || event.status === "cancelled")
-            return false;
-          const eventStartValue = getEventTimeValue(event.start);
-          const eventEndValue = getEventTimeValue(event.end);
-          if (!eventStartValue || !eventEndValue) return false;
-
-          return intervalsOverlap(
-            nextStart,
-            nextEnd,
-            new Date(eventStartValue),
-            new Date(eventEndValue),
-          );
-        });
-
-        if (conflict) {
-          throw new CalendarConflictError(
-            `Cannot update event into a busy slot. It conflicts with "${conflict.summary ?? "an existing event"}".`,
-          );
-        }
-
         const duplicate = (overlappingEvents.items ?? []).find((event: any) => {
           if (event.id === input.id || event.status === "cancelled")
             return false;
@@ -399,6 +399,28 @@ export const calendarService = {
         if (duplicate) {
           throw new CalendarConflictError(
             `An event named "${input.summary ?? existing.summary}" already exists in that exact slot. I did not create a duplicate event.`,
+          );
+        }
+
+        // Overlaps are allowed on update too — warn instead of blocking.
+        const conflict = (overlappingEvents.items ?? []).find((event: any) => {
+          if (event.id === input.id || event.status === "cancelled")
+            return false;
+          const eventStartValue = getEventTimeValue(event.start);
+          const eventEndValue = getEventTimeValue(event.end);
+          if (!eventStartValue || !eventEndValue) return false;
+
+          return intervalsOverlap(
+            nextStart,
+            nextEnd,
+            new Date(eventStartValue),
+            new Date(eventEndValue),
+          );
+        });
+
+        if (conflict) {
+          warnings.push(
+            `This event overlaps with ${describeEventConflict(conflict)}.`,
           );
         }
       }
@@ -437,6 +459,7 @@ export const calendarService = {
       return {
         id: res.id ?? "",
         success: true,
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
     } catch (error) {
       console.error("Error updating calendar event:", error);

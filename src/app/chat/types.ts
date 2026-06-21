@@ -44,6 +44,7 @@ export type ExecutedAction =
       location?: string;
       attendees?: string[];
       event?: CalendarActionEvent;
+      warnings?: string[];
       success: boolean;
     }
   | {
@@ -56,6 +57,7 @@ export type ExecutedAction =
       location?: string;
       attendees?: string[];
       event?: CalendarActionEvent;
+      warnings?: string[];
       success: boolean;
     }
   | {
