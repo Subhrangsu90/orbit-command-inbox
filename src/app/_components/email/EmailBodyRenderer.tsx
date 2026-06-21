@@ -20,7 +20,7 @@ const linkifyOptions = {
 const emailFrameStyles = `
   :root {
     color-scheme: light;
-    background: #ffffff;
+    background: #f7f3fc;
   }
 
   html,
@@ -37,7 +37,7 @@ const emailFrameStyles = `
     box-sizing: border-box;
     width: 100%;
     padding: 0;
-    background: #ffffff;
+    background: #f7f3fc;
   }
 
   *,
@@ -134,13 +134,13 @@ function HtmlEmailBody({ content }: { content: string }) {
   }
 
   return (
-    <div className="border-outline-variant/60 w-full overflow-x-auto overflow-y-hidden rounded-2xl border bg-white shadow-xs">
+    <div className="border-outline-variant/60 w-full overflow-x-auto overflow-y-hidden rounded-2xl border bg-surface-container-lowest shadow-xs">
       <iframe
         ref={iframeRef}
         title="Email body"
         srcDoc={srcDoc}
         sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-        className="block w-full border-0 bg-white"
+        className="block w-full border-0 bg-surface-container-lowest"
         style={{ height, width: width ? `${width}px` : "100%" }}
         onLoad={resizeFrame}
       />

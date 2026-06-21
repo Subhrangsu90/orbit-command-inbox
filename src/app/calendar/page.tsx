@@ -59,7 +59,6 @@ export default function CalendarPage() {
 function CalendarContainer() {
   const searchParams = useSearchParams();
   const linkedEventId = searchParams.get("eventId");
-  const linkedCalendarId = searchParams.get("calendarId") ?? undefined;
   const { preferences } = useWorkspacePreferences();
   const { data: connections, isLoading: isLoadingConnections } =
     api.corsair.getConnections.useQuery();
@@ -1068,7 +1067,7 @@ function CalendarContainer() {
       )}
 
       {/* Floating Create Event Button */}
-      {isCalConnected && (
+      {/* {isCalConnected && (
         <button
           onClick={() => {
             setIsCreateOpen(true);
@@ -1078,7 +1077,7 @@ function CalendarContainer() {
         >
           <Plus className="size-6" />
         </button>
-      )}
+      )} */}
     </WorkspaceLayout>
   );
 }
