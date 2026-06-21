@@ -5,6 +5,7 @@ import { agentService } from "./service";
 import { createGeminiChatClient, createOpenAIChatClient } from "~/server/api/llm";
 import crypto from "crypto";
 import type { Message } from "./model";
+import { generateAndStoreMessageEmbedding, searchChatMemory } from "~/server/lib/ai/embeddings";
 
 export const roomsService = {
   async listRooms(userId: string) {
@@ -166,9 +167,13 @@ Query: "${content.trim()}"`;
       content: m.content,
     }));
 
+    // Perform semantic search on past chat memory across all rooms
+    const contextMessages = await searchChatMemory(userId, content, 5);
+
     // Call agentService
     const agentResult = await agentService.chat(userId, {
       messages: formattedHistory,
+      contextMessages,
     });
 
     // Save assistant's response to db
@@ -181,6 +186,14 @@ Query: "${content.trim()}"`;
       content: agentResult.response,
       actions: agentResult.actions,
       createdAt: assistantMessageTime,
+    });
+
+    // Generate and store message embeddings in the background (non-blocking)
+    generateAndStoreMessageEmbedding(userMessageId, content).catch((err) => {
+      console.error("Failed to generate user message embedding in background:", err);
+    });
+    generateAndStoreMessageEmbedding(assistantMessageId, agentResult.response).catch((err) => {
+      console.error("Failed to generate assistant message embedding in background:", err);
     });
 
     // Update room's updatedAt
@@ -197,5 +210,6 @@ Query: "${content.trim()}"`;
       actions: agentResult.actions,
       messages: finalHistory,
     };
+
   },
 };

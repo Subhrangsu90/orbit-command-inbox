@@ -94,7 +94,7 @@ function summarizeModelError(error: unknown) {
 export const agentService = {
   async chat(
     tenantId: string,
-    input: { messages: Message[] },
+    input: { messages: Message[]; contextMessages?: Message[] },
   ): Promise<{
     response: string;
     actions: ExecutedAction[];
@@ -112,6 +112,15 @@ export const agentService = {
     const now = new Date();
     const senderIdentity = await getSenderIdentity(tenantId);
     const senderLabel = formatSenderIdentity(senderIdentity);
+
+    let contextPrompt = "";
+    if (input.contextMessages && input.contextMessages.length > 0) {
+      contextPrompt = `\n\n**RELEVANT PAST CONVERSATIONS (MEMORY)**:
+The following fragments are from your past conversations with this user. Use them to answer questions or remember details if relevant:
+${input.contextMessages.map((m) => `- [${m.role === 'user' ? 'User' : 'Assistant'}]: ${m.content}`).join("\n")}
+`;
+    }
+
     const systemPrompt = `You are Tacta Assistant, a smart, warm, and proactive email and calendar copilot inside Tacta Workspace.
 
     **DOMAIN CONSTRAINT**: Your sole responsibility is managing emails and calendar events within Google Workspace.
@@ -148,7 +157,7 @@ ${allSystemPromptSections()}
 After tools:
 - Summarize exactly what happened: drafted, sent, scheduled, searched, or listed.
 - When an event is scheduled, include the title, start/end time, attendees, location/link, and event id when available.
-- When an email draft is created, tell the user it is ready for review and ask for confirmation before sending.`;
+- When an email draft is created, tell the user it is ready for review and ask for confirmation before sending.${contextPrompt}`;
 
     const conversationInput: ResponseInputItem[] = input.messages
       .filter((message) => message.role !== "system")

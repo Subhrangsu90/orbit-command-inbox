@@ -1,4 +1,4 @@
-import { pgTable, text, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, jsonb, timestamp, index } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 
 export const agentRooms = pgTable("agent_rooms", {
@@ -13,7 +13,9 @@ export const agentRooms = pgTable("agent_rooms", {
   updatedAt: timestamp("updated_at")
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("agent_rooms_user_id_idx").on(table.userId),
+]);
 
 export const agentMessages = pgTable("agent_messages", {
   id: text("id").primaryKey(),
@@ -26,4 +28,8 @@ export const agentMessages = pgTable("agent_messages", {
   createdAt: timestamp("created_at")
     .notNull()
     .defaultNow(),
-});
+}, (table) => [
+  index("agent_messages_room_id_idx").on(table.roomId),
+]);
+
+
