@@ -6,6 +6,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import { authClient } from "~/server/better-auth/client";
 import { useWorkspacePreferences } from "~/app/_components/workspacePreferencesContext";
 import { api } from "~/trpc/react";
+import { toast } from "sonner";
 import { Logo } from "~/app/_components/Logo";
 import { Button } from "~/app/_components/ui/button";
 import { IntegrationConnectionList } from "~/app/_components/integrations/IntegrationConnectionList";
@@ -41,8 +42,10 @@ export default function OnboardingPage() {
       await completeOnboardingMutation.mutateAsync();
       await refetchPreferences();
       router.push("/");
+      toast.success("Welcome to Tacta! Workspace loaded successfully.");
     } catch (e) {
       console.error("Failed to complete onboarding:", e);
+      toast.error("Failed to complete onboarding. Please try again.");
     }
   }
 

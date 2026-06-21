@@ -4,6 +4,7 @@ import { CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "~/app/_components/ui/button";
 import { GmailIcon, GoogleCalendarIcon } from "~/app/_components/ui/icons";
 import { api } from "~/trpc/react";
+import { toast } from "sonner";
 
 interface IntegrationConnectionListProps {
   variant: "settings" | "onboarding";
@@ -33,7 +34,13 @@ export function IntegrationConnectionList({ variant }: IntegrationConnectionList
 
   const getConnectUrlMutation = api.integrations.getConnectUrl.useMutation();
   const disconnectMutation = api.integrations.disconnect.useMutation({
-    onSuccess: () => void refetch(),
+    onSuccess: () => {
+      void refetch();
+      toast.success("Disconnected integration successfully!");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to disconnect integration");
+    },
   });
 
   const handleConnect = async (provider: "gmail" | "calendar") => {

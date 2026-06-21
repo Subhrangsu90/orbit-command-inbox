@@ -433,6 +433,41 @@ export const emailsRouter = createTRPCRouter({
       return searchSemantic(ctx.session.user.id, input.q, input.limit);
     }),
 
+  getSummary: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const email = await emailsService.get(ctx.session.user.id, { id: input.id });
+      const { getEmailSummary } = await import("~/server/lib/ai/emailAgent");
+      const summary = await getEmailSummary(
+        input.id,
+        email.subject,
+        email.body || email.snippet || "",
+      );
+      return { summary };
+    }),
+
+  generateAiReply: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        tone: z.enum(["agree", "decline", "info", "custom"]),
+        prompt: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const email = await emailsService.get(ctx.session.user.id, { id: input.id });
+      const { generateEmailReply } = await import("~/server/lib/ai/emailAgent");
+      const reply = await generateEmailReply(
+        email.subject,
+        email.senderName || email.from,
+        email.senderEmail || email.from,
+        email.body || email.snippet || "",
+        input.tone,
+        input.prompt,
+      );
+      return { reply };
+    }),
+
 });
 
 export * from "./model";

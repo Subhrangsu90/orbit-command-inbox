@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Linkify from "linkify-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -20,7 +20,7 @@ const linkifyOptions = {
 const emailFrameStyles = `
   :root {
     color-scheme: light;
-    background: #f7f3fc;
+    background: transparent !important;
   }
 
   html,
@@ -31,13 +31,22 @@ const emailFrameStyles = `
     overflow-wrap: normal;
     word-break: normal;
     -webkit-text-size-adjust: 100%;
+    background: transparent !important;
   }
 
   body {
     box-sizing: border-box;
     width: 100%;
     padding: 0;
-    background: #f7f3fc;
+    background: transparent !important;
+  }
+
+  #email-body-wrapper {
+    display: flow-root;
+    width: 100%;
+    margin: 0;
+    padding: 16px;
+    box-sizing: border-box;
   }
 
   *,
@@ -75,26 +84,36 @@ function isFullHtmlDocument(content: string) {
 
 function injectEmailFrameStyles(content: string) {
   const headContent = `<base target="_blank"><style>${emailFrameStyles}</style>`;
+  let parsed = content;
 
-  if (!isFullHtmlDocument(content)) {
-    return `<!doctype html><html><head><meta charset="utf-8">${headContent}</head><body>${content}</body></html>`;
-  }
-
-  if (/<\s*head\b[^>]*>/i.test(content)) {
-    return content.replace(
+  if (/<\s*head\b[^>]*>/i.test(parsed)) {
+    parsed = parsed.replace(
       /<\s*head\b[^>]*>/i,
       (match) => `${match}${headContent}`,
     );
-  }
-
-  if (/<\s*html\b[^>]*>/i.test(content)) {
-    return content.replace(
+  } else if (/<\s*html\b[^>]*>/i.test(parsed)) {
+    parsed = parsed.replace(
       /<\s*html\b[^>]*>/i,
       (match) => `${match}<head><meta charset="utf-8">${headContent}</head>`,
     );
+  } else if (!isFullHtmlDocument(parsed)) {
+    parsed = `<!doctype html><html><head><meta charset="utf-8">${headContent}</head><body>${parsed}</body></html>`;
   }
 
-  return `<!doctype html><html><head><meta charset="utf-8">${headContent}</head>${content}</html>`;
+  if (/<\s*body\b[^>]*>/i.test(parsed)) {
+    parsed = parsed.replace(
+      /(<\s*body\b[^>]*>)/i,
+      `$1<div id="email-body-wrapper">`,
+    );
+    parsed = parsed.replace(/(<\s*\/\s*body\s*>)/i, `</div>$1`);
+  } else {
+    parsed = parsed.replace(/(<\/html>)/i, `</body></html>`);
+    if (/<\/body>/i.test(parsed)) {
+      parsed = parsed.replace(/(<\/body>)/i, `</div>$1`);
+    }
+  }
+
+  return parsed;
 }
 
 function HtmlEmailBody({ content }: { content: string }) {
@@ -103,46 +122,131 @@ function HtmlEmailBody({ content }: { content: string }) {
   const [width, setWidth] = useState<number | undefined>();
   const srcDoc = useMemo(() => injectEmailFrameStyles(content), [content]);
 
-  function resizeFrame() {
-    const frameDocument =
-      iframeRef.current?.contentDocument ??
-      iframeRef.current?.contentWindow?.document;
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
 
-    if (!frameDocument) return;
+    let resizeObserver: ResizeObserver | null = null;
 
-    const body = frameDocument.body;
-    const html = frameDocument.documentElement;
-    const viewportWidth = iframeRef.current?.parentElement?.clientWidth ?? 0;
-    const nextHeight = Math.max(
-      body?.scrollHeight ?? 0,
-      body?.offsetHeight ?? 0,
-      html?.clientHeight ?? 0,
-      html?.scrollHeight ?? 0,
-      html?.offsetHeight ?? 0,
-      160,
-    );
-    const nextWidth = Math.max(
-      body?.scrollWidth ?? 0,
-      body?.offsetWidth ?? 0,
-      html?.scrollWidth ?? 0,
-      html?.offsetWidth ?? 0,
-      viewportWidth,
-    );
+    const resize = () => {
+      const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+      if (!doc) return;
 
-    setHeight(Math.min(nextHeight + 8, 12000));
-    setWidth(nextWidth > viewportWidth ? nextWidth : undefined);
-  }
+      const wrapper = doc.getElementById("email-body-wrapper");
+      const body = doc.body;
+      const html = doc.documentElement;
+
+      let nextHeight = 160;
+      let nextWidth = iframe.parentElement?.clientWidth ?? 0;
+
+      if (wrapper) {
+        const rect = wrapper.getBoundingClientRect();
+        nextHeight = Math.max(rect.height, 160);
+        nextWidth = Math.max(
+          wrapper.scrollWidth,
+          wrapper.offsetWidth,
+          nextWidth,
+        );
+      } else if (body) {
+        nextHeight = Math.max(
+          body.scrollHeight,
+          body.offsetHeight,
+          html.clientHeight,
+          html.scrollHeight,
+          html.offsetHeight,
+          160,
+        );
+        nextWidth = Math.max(
+          body.scrollWidth,
+          body.offsetWidth,
+          html.scrollWidth,
+          html.offsetWidth,
+          nextWidth,
+        );
+      }
+
+      setHeight(nextHeight + 4);
+      setWidth(
+        nextWidth > (iframe.parentElement?.clientWidth ?? 0)
+          ? nextWidth
+          : undefined,
+      );
+    };
+
+    const onLoad = () => {
+      const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+      if (!doc) return;
+
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+
+      resizeObserver = new ResizeObserver(() => {
+        resize();
+      });
+
+      const wrapper = doc.getElementById("email-body-wrapper");
+      if (wrapper) {
+        resizeObserver.observe(wrapper);
+      } else if (doc.body) {
+        resizeObserver.observe(doc.body);
+      }
+
+      if (doc.documentElement) {
+        resizeObserver.observe(doc.documentElement);
+      }
+
+      const images = doc.getElementsByTagName("img");
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        if (img && !img.complete) {
+          img.addEventListener("load", resize);
+          img.addEventListener("error", resize);
+        }
+      }
+
+      resize();
+    };
+
+    if (iframe.contentDocument?.readyState === "complete") {
+      onLoad();
+    }
+
+    iframe.addEventListener("load", onLoad);
+
+    let parentObserver: ResizeObserver | null = null;
+    if (iframe.parentElement) {
+      parentObserver = new ResizeObserver(() => {
+        resize();
+      });
+      parentObserver.observe(iframe.parentElement);
+    }
+
+    return () => {
+      iframe.removeEventListener("load", onLoad);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      if (parentObserver) {
+        parentObserver.disconnect();
+      }
+    };
+  }, [srcDoc]);
 
   return (
-    <div className="border-outline-variant/60 w-full overflow-x-auto overflow-y-hidden rounded-2xl border bg-surface-container-lowest shadow-xs">
+    <div className="border-outline-variant/60 w-full overflow-x-auto overflow-y-hidden rounded-2xl border bg-transparent shadow-xs">
       <iframe
         ref={iframeRef}
         title="Email body"
         srcDoc={srcDoc}
         sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-        className="block w-full border-0 bg-surface-container-lowest"
-        style={{ height, width: width ? `${width}px` : "100%" }}
-        onLoad={resizeFrame}
+        scrolling="no"
+        className="block w-full border-0 bg-transparent"
+        style={{
+          height: `${height}px`,
+          width: width ? `${width}px` : "100%",
+          overflow: "hidden",
+        }}
       />
     </div>
   );
@@ -267,7 +371,7 @@ function MarkdownBody({ content }: { content: string }) {
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-0.5 break-all"
+                className="text-primary inline-flex items-center gap-0.5 font-semibold break-all hover:underline"
               >
                 {children}
                 <ExternalLink className="inline size-3 shrink-0" />

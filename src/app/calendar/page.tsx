@@ -17,6 +17,7 @@ import {
 import { WorkspaceLayout } from "~/app/_components/WorkspaceLayout";
 import { useWorkspacePreferences } from "~/app/_components/workspacePreferencesContext";
 import { api } from "~/trpc/react";
+import { toast } from "sonner";
 
 import {
   dateKey,
@@ -293,7 +294,9 @@ function CalendarContainer() {
     },
     onError: (err) => {
       setIsCheckingAvailability(false);
-      setAvailabilityError(err.message || "Failed to fetch availability.");
+      const errMsg = err.message || "Failed to fetch availability.";
+      setAvailabilityError(errMsg);
+      toast.error(errMsg);
     },
   });
 
@@ -320,6 +323,10 @@ function CalendarContainer() {
     onSuccess: () => {
       setIsCreateOpen(false);
       void refetch();
+      toast.success("Calendar event created successfully!");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create calendar event");
     },
   });
 
@@ -327,6 +334,10 @@ function CalendarContainer() {
     onSuccess: () => {
       setIsEditOpen(false);
       void refetch();
+      toast.success("Calendar event updated successfully!");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update calendar event");
     },
   });
 
@@ -334,6 +345,10 @@ function CalendarContainer() {
     onSuccess: () => {
       setSelectedEventId(null);
       void refetch();
+      toast.success("Calendar event deleted successfully!");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to delete calendar event");
     },
   });
 

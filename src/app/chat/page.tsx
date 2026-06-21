@@ -15,6 +15,7 @@ import { WorkspaceLayout } from "~/app/_components/WorkspaceLayout";
 import { api } from "~/trpc/react";
 import { Button } from "~/app/_components/ui/button";
 import { authClient } from "~/server/better-auth/client";
+import { toast } from "sonner";
 
 import type { ExecutedAction, ChatMessage } from "./types";
 import { ThinkingTimeline, isWorkspaceActionQuery } from "./_components/ThinkingTimeline";
@@ -96,6 +97,9 @@ function ChatContainer() {
       void utils.agent.listRooms.invalidate();
       selectRoom(newRoom.id);
     },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create chat room");
+    },
   });
 
   const deleteRoomMutation = api.agent.deleteRoom.useMutation({
@@ -104,6 +108,10 @@ function ChatContainer() {
       if (activeRoomId === variables.roomId) {
         selectRoom(null);
       }
+      toast.success("Chat room deleted successfully");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to delete chat room");
     },
   });
 
@@ -111,6 +119,10 @@ function ChatContainer() {
     onSuccess: () => {
       void utils.agent.listRooms.invalidate();
       setEditingRoomId(null);
+      toast.success("Chat room renamed successfully");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to rename chat room");
     },
   });
 
@@ -119,6 +131,9 @@ function ChatContainer() {
       void utils.agent.listRooms.invalidate();
       void refetchHistory();
       setTimeout(() => chatInputRef.current?.focus(), 100);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to send message to AI");
     },
   });
 

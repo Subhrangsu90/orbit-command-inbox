@@ -35,6 +35,7 @@ import { LabelsDialog } from "~/app/_components/email/LabelsDialog";
 import { CalendarAgendaSidebar } from "~/app/_components/calendar/CalendarAgendaSidebar";
 import { mailboxDisplayName } from "~/app/_utils/emailPresentation";
 import { useMailStore } from "./mailStore";
+import { toast } from "sonner";
 
 const CATEGORIES = [
   { id: "primary", name: "Primary", icon: Inbox },
@@ -303,6 +304,10 @@ function MailboxHome() {
       setIsComposeOpen(false);
       resetCompose();
       void refetchMailbox();
+      toast.success("Email sent successfully!");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to send email");
     },
   });
 
@@ -310,15 +315,28 @@ function MailboxHome() {
     onSuccess: () => {
       setSelectedEmailId(null);
       void refetchMailbox();
+      toast.success("Email moved to trash");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to move email to trash");
     },
   });
 
   const modifyLabelsMutation = api.emails.modifyLabels.useMutation({
     onSuccess: () => void refetchMailbox(),
+    onError: (err) => {
+      toast.error(err.message || "Failed to update labels");
+    },
   });
 
   const replyMutation = api.emails.reply.useMutation({
-    onSuccess: () => void refetchMailbox(),
+    onSuccess: () => {
+      void refetchMailbox();
+      toast.success("Reply sent successfully!");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to send reply");
+    },
   });
 
   const createDraftMutation = api.emails.createDraft.useMutation({
@@ -326,6 +344,10 @@ function MailboxHome() {
       setIsComposeOpen(false);
       resetCompose();
       void draftsQuery.refetch();
+      toast.success("Draft created successfully");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create draft");
     },
   });
 
@@ -334,6 +356,10 @@ function MailboxHome() {
       setIsComposeOpen(false);
       resetCompose();
       void draftsQuery.refetch();
+      toast.success("Draft updated successfully");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update draft");
     },
   });
 
@@ -341,6 +367,10 @@ function MailboxHome() {
     onSuccess: () => {
       setSelectedEmailId(null);
       void draftsQuery.refetch();
+      toast.success("Draft deleted successfully");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to delete draft");
     },
   });
 
@@ -348,6 +378,10 @@ function MailboxHome() {
     onSuccess: () => {
       setSelectedEmailId(null);
       void draftsQuery.refetch();
+      toast.success("Draft sent successfully!");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to send draft");
     },
   });
 
@@ -355,6 +389,10 @@ function MailboxHome() {
     onSuccess: () => {
       setSelectedMessageIds([]);
       void refetchMailbox();
+      toast.success("Batch action completed successfully");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to run batch action");
     },
   });
 
@@ -362,11 +400,21 @@ function MailboxHome() {
     onSuccess: () => {
       setNewLabelName("");
       void refetchLabels();
+      toast.success("Label created successfully");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to create label");
     },
   });
 
   const deleteLabelMutation = api.emails.deleteLabel.useMutation({
-    onSuccess: () => void refetchLabels(),
+    onSuccess: () => {
+      void refetchLabels();
+      toast.success("Label deleted successfully");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to delete label");
+    },
   });
 
   function resetCompose() {
