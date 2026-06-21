@@ -27,6 +27,20 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${geist.variable}`}>
+      <head>
+        {process.env.NODE_ENV === "production" && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                console.log = function() {};
+                console.info = function() {};
+                console.debug = function() {};
+                console.warn = function() {};
+              `,
+            }}
+          />
+        )}
+      </head>
       <body>
         <TRPCReactProvider>
           <WorkspacePreferencesProvider>
