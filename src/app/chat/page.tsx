@@ -486,7 +486,7 @@ function ChatContainer() {
                         </span>
                       </div>
                     ) : (
-                      <div className="flex w-full flex-col p-1 sm:max-w-sm">
+                      <div className="flex w-full flex-col p-1">
                         <div className="mb-3 flex items-center gap-2 pb-1 text-on-surface">
                           <RefreshCw className="text-primary size-4 animate-spin" />
                           <span className="text-label-md font-semibold">
