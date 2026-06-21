@@ -52,9 +52,17 @@ export function NotificationBell() {
         )}
       </button>
 
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px] sm:hidden animate-fade-in"
+        />
+      )}
+
       {/* Popover Notification List */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 z-50 w-80 sm:w-96 rounded-2xl border border-outline-variant/30 bg-surface shadow-xl text-on-surface animate-scale-in overflow-hidden">
+        <div className="fixed top-16 right-4 left-4 sm:absolute sm:right-0 sm:left-auto sm:top-auto sm:inset-x-auto sm:mt-2 z-50 w-auto sm:w-96 rounded-2xl border border-outline-variant/30 bg-surface shadow-xl text-on-surface animate-scale-in overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-outline-variant/20 px-4 py-3 bg-surface-container/20">
             <div className="flex items-center gap-2">

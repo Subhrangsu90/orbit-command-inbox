@@ -408,7 +408,7 @@ function SettingsPage() {
                     <div>
                       <SectionHeader
                         title="General Settings"
-                        description="Manage appearance themes, scaling, and display attributes."
+                        description="Manage appearance themes and scaling display attributes."
                       />
 
                       <div className="space-y-1">
@@ -432,48 +432,6 @@ function SettingsPage() {
                         </SettingRow>
 
                         <SettingRow
-                          label="Contrast"
-                          description="Customize the contrast settings of the dashboard."
-                        >
-                          <select
-                            disabled
-                            className="border border-outline-variant/40 bg-surface-container/50 text-on-surface-variant/40 w-full min-w-[140px] rounded-lg px-3 py-1.5 text-xs font-semibold outline-none cursor-not-allowed sm:w-auto"
-                            value="system"
-                          >
-                            <option value="system">System Default</option>
-                          </select>
-                        </SettingRow>
-
-                        <SettingRow
-                          label="Accent color"
-                          description="Select the default primary color highlight."
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="size-2.5 rounded-full bg-primary" />
-                            <select
-                              disabled
-                              className="border border-outline-variant/40 bg-surface-container/50 text-on-surface-variant/40 w-full min-w-[140px] rounded-lg px-3 py-1.5 text-xs font-semibold outline-none cursor-not-allowed sm:w-auto"
-                              value="primary"
-                            >
-                              <option value="primary">Default</option>
-                            </select>
-                          </div>
-                        </SettingRow>
-
-                        <SettingRow
-                          label="Language"
-                          description="Select your preferred display language."
-                        >
-                          <select
-                            disabled
-                            className="border border-outline-variant/40 bg-surface-container/50 text-on-surface-variant/40 w-full min-w-[140px] rounded-lg px-3 py-1.5 text-xs font-semibold outline-none cursor-not-allowed sm:w-auto"
-                            value="en"
-                          >
-                            <option value="en">English (US)</option>
-                          </select>
-                        </SettingRow>
-
-                        <SettingRow
                           label="Text size"
                           description="Scales all workspace text readability scale."
                           last
@@ -491,33 +449,6 @@ function SettingsPage() {
                             <option value="comfortable">Comfortable</option>
                             <option value="large">Large</option>
                           </select>
-                        </SettingRow>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-outline-variant/30">
-                      <SectionHeader title="Intelligence & Voice" />
-                      <div className="space-y-1">
-                        <SettingRow
-                          label="Higher intelligence"
-                          description="Automatically use advanced reasoning models when answering complex requests."
-                        >
-                          <ToggleSwitch checked={true} disabled />
-                        </SettingRow>
-
-                        <SettingRow
-                          label="Enable Dictation"
-                          description="Use speech dictation in the workspace search bar."
-                        >
-                          <ToggleSwitch checked={true} disabled />
-                        </SettingRow>
-
-                        <SettingRow
-                          label="Separate Voice"
-                          description="Keep voice features in a separate overlay screen."
-                          last
-                        >
-                          <ToggleSwitch checked={false} disabled />
                         </SettingRow>
                       </div>
                     </div>
