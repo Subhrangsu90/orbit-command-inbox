@@ -1,8 +1,9 @@
 "use client";
 
-import type { RefObject } from "react";
-import { Plus, Send, Mic, Calendar, Search, Mail } from "lucide-react";
+import { useState, type RefObject } from "react";
+import { Plus, Send, Mic, MicOff, Calendar, Search, Mail, Sparkles } from "lucide-react";
 import { Button } from "~/app/_components/ui/button";
+import { toast } from "sonner";
 
 interface ChatInputFormProps {
   isCentered: boolean;
@@ -23,10 +24,72 @@ export function ChatInputForm({
   handleSend,
   handleCreateRoom,
 }: ChatInputFormProps) {
+  const [isListening, setIsListening] = useState(false);
+  const [recognitionInstance, setRecognitionInstance] = useState<any>(null);
+
+  const handleVoiceInput = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      toast.error("Voice input is not supported in this browser. Please try Google Chrome or Safari.");
+      return;
+    }
+
+    if (isListening) {
+      if (recognitionInstance) {
+        recognitionInstance.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.lang = "en-US";
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        toast.info("Listening... Speak now.");
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0]?.[0]?.transcript;
+        if (transcript) {
+          setInput(input ? `${input.trim()} ${transcript}` : transcript);
+          toast.success("Voice input captured!");
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        if (event.error !== "no-speech") {
+          toast.error(`Voice input failed: ${event.error}`);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        setRecognitionInstance(null);
+      };
+
+      recognition.start();
+      setRecognitionInstance(recognition);
+    } catch (err: any) {
+      console.error("Failed to start speech recognition:", err);
+      setIsListening(false);
+    }
+  };
+
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        if (isListening && recognitionInstance) {
+          recognitionInstance.stop();
+        }
         handleSend(input);
       }}
       className={`mx-auto flex w-full flex-col items-center ${isCentered ? "mt-4 max-w-3xl" : "max-w-4xl"}`}
@@ -67,10 +130,15 @@ export function ChatInputForm({
             <>
               <button
                 type="button"
-                className="text-on-surface-variant hover:bg-surface-container-high hover:text-primary flex size-10 items-center justify-center rounded-full transition"
-                title="Voice input (Not supported)"
+                onClick={handleVoiceInput}
+                className={`flex size-10 items-center justify-center rounded-full transition cursor-pointer ${
+                  isListening
+                    ? "bg-red-500/10 text-red-500 animate-pulse border border-red-500/20"
+                    : "text-on-surface-variant hover:bg-surface-container-high hover:text-primary"
+                }`}
+                title={isListening ? "Listening... click to stop" : "Start voice input"}
               >
-                <Mic className="size-4.5" />
+                {isListening ? <MicOff className="size-4.5" /> : <Mic className="size-4.5" />}
               </button>
             </>
           )}
@@ -82,24 +150,22 @@ export function ChatInputForm({
         <div className="mt-6 grid w-full grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-3">
           {[
             {
-              title: "Schedule meeting",
-              desc: "Send calendar invite & email for next Thursday",
-              prompt:
-                "Send a calendar invite to iamsubhrangsubera@gmail.com at 9 AM next Thursday. Send him an email too saying I look forward to our meeting.",
+              title: "Draft Email",
+              desc: "Draft a follow-up email to a collaborator",
+              prompt: "Draft a follow-up email to Subhrangsu asking for the latest design files.",
+              icon: <Mail className="text-primary size-5" />,
+            },
+            {
+              title: "Schedule Sync",
+              desc: "Book a calendar event for a meeting or call",
+              prompt: "Schedule a sync meeting with Subhrangsu next Wednesday at 2 PM to review layout styles.",
               icon: <Calendar className="text-primary size-5" />,
             },
             {
-              title: "Search emails",
-              desc: "Find recent updates in your inbox",
-              prompt:
-                "Search my inbox for recent emails about project updates.",
-              icon: <Search className="text-primary size-5" />,
-            },
-            {
-              title: "View agenda",
-              desc: "Check your upcoming events for next week",
-              prompt: "Show my upcoming calendar events for next week.",
-              icon: <Mail className="text-primary size-5" />,
+              title: "Daily Briefing",
+              desc: "Summarize unread emails and agenda",
+              prompt: "Give me a daily briefing: summarize my unread emails and show today's calendar events.",
+              icon: <Sparkles className="text-primary size-5" />,
             },
           ].map((sug, idx) => (
             <button

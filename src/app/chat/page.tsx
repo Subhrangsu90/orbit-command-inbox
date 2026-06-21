@@ -54,9 +54,8 @@ function ChatContainer() {
   const userName = session.data?.user?.name;
   const userImage = session.data?.user?.image;
   const firstName = userName ? userName.split(" ")[0] : "";
-  const welcomeText = firstName
-    ? `Welcome back, ${firstName}. What's on your mind today?`
-    : "What's on your mind today?";
+  const welcomeTitle = firstName ? `Hello, ${firstName}` : "Welcome back";
+  const welcomeSubtitle = "How can I assist you with your emails and calendar today?";
 
   const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState("");
@@ -408,9 +407,14 @@ function ChatContainer() {
             </div>
           ) : messages.length === 0 ? (
             <div className="mx-auto flex w-full flex-1 flex-col items-center justify-center bg-transparent px-4 py-16 sm:px-8">
-              <h1 className="text-on-surface animate-fade-in mb-6 text-center font-sans text-3xl leading-tight font-bold tracking-tight sm:mb-8 sm:text-5xl">
-                {welcomeText}
-              </h1>
+              <div className="animate-fade-in mb-6 text-center space-y-2 max-w-2xl">
+                <h1 className="text-on-surface font-sans text-2xl font-bold tracking-tight sm:text-3xl">
+                  {welcomeTitle}
+                </h1>
+                <p className="text-on-surface-variant text-sm sm:text-base leading-relaxed">
+                  {welcomeSubtitle}
+                </p>
+              </div>
               <ChatInputForm
                 isCentered={true}
                 input={input}
