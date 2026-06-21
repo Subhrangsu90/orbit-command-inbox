@@ -113,50 +113,25 @@ export const getAvailabilityOutputModel = z.object({
   ).optional(),
 });
 
-export const localCalendarSearchOperatorModel = z.enum([
-  "equals",
-  "contains",
-  "startsWith",
-  "endsWith",
-  "in",
-  "gt",
-  "gte",
-  "lt",
-  "lte",
-  "before",
-  "after",
-  "between",
-]);
+import {
+  localSearchOperatorSchema,
+  localSearchFilterSchema,
+  localEntitySchema,
+  localSearchOutputSchema,
+} from "~/server/lib/search/localSearch";
 
-export const localCalendarSearchFilterModel = z.object({
-  field: z.string().min(1),
-  operator: localCalendarSearchOperatorModel,
-  value: z.union([
-    z.string(),
-    z.number(),
-    z.array(z.string()),
-    z.array(z.number()),
-  ]),
-});
+export const localCalendarSearchOperatorModel = localSearchOperatorSchema;
+export const localCalendarSearchFilterModel = localSearchFilterSchema;
 
 export const localCalendarSearchInputModel = z.object({
   entity: z.enum(["calendars", "events"]),
-  filters: z.array(localCalendarSearchFilterModel).default([]),
+  filters: z.array(localSearchFilterSchema).default([]),
   limit: z.number().min(1).max(100).default(50),
   offset: z.number().min(0).default(0),
 });
 
-export const localCalendarEntityModel = z.object({
-  id: z.string(),
-  entityId: z.string(),
-  data: z.record(z.string(), z.unknown()),
-  createdAt: z.string().nullable(),
-  updatedAt: z.string().nullable(),
-});
+export const localCalendarEntityModel = localEntitySchema;
+export const localCalendarSearchOutputModel = localSearchOutputSchema;
 
-export const localCalendarSearchOutputModel = z.object({
-  rows: z.array(localCalendarEntityModel),
-  source: z.literal("corsair-local-db"),
-});
 
 

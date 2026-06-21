@@ -8,8 +8,7 @@ async function main() {
 
   try {
     console.log("Enabling pgvector extension on Neon...");
-    await sql`CREATE EXTE
-    NSION IF NOT EXISTS vector;`;
+    await sql`CREATE EXTENSION IF NOT EXISTS vector;`;
     console.log("pgvector extension enabled successfully!");
   } catch (err) {
     console.error("Failed to enable pgvector extension:", err);

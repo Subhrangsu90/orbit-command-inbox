@@ -35,8 +35,8 @@ export const gmailPlugin = gmail({
                 { generateAndStoreEmbedding },
               ] = await Promise.all([
                 import("~/server/api/routers/emails/service"),
-                import("~/server/api/routers/emails/priority"),
-                import("~/server/api/routers/emails/vectorSearch"),
+                import("~/server/lib/ai/priority"),
+                import("~/server/lib/ai/embeddings"),
               ]);
 
               const email = await emailsService.get(tenantId, {

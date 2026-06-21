@@ -1,4 +1,5 @@
 import { corsair, ensureCorsairConfigured } from "~/server/corsair";
+import { executeLocalSearch } from "~/server/lib/search/localSearch";
 import { emailsService } from "../emails/service";
 
 class CalendarConflictError extends Error {
@@ -543,58 +544,9 @@ export const calendarService = {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
     const entityClient = client.googlecalendar.db[input.entity];
-    const entityFilters: Record<string, unknown> = {};
-    const dataFilters: Record<string, unknown> = {};
-
-    for (const filter of input.filters) {
-      const target = filter.field === "entity_id" ? entityFilters : dataFilters;
-      const field = filter.field === "entity_id" ? "entity_id" : filter.field;
-      target[field] = toLocalSearchValue(filter.operator, filter.value);
-    }
-
-    const rows = await entityClient.search({
-      ...entityFilters,
-      data: dataFilters,
-      limit: input.limit,
-      offset: input.offset,
-    } as never);
-
-    return {
-      rows: rows.map(serializeLocalEntity),
-      source: "corsair-local-db" as const,
-    };
+    return executeLocalSearch(entityClient, input);
   },
 };
-
-function toLocalSearchValue(
-  operator: string,
-  value: string | number | string[] | number[],
-) {
-  if (operator === "equals") return value;
-  if (operator === "before" || operator === "after") {
-    return { [operator]: new Date(String(value)) };
-  }
-  if (operator === "between" && Array.isArray(value)) {
-    return { between: value.map((item) => new Date(String(item))) };
-  }
-  return { [operator]: value };
-}
-
-function serializeLocalEntity(row: {
-  id: string;
-  entity_id: string;
-  data: unknown;
-  created_at: Date | string | null;
-  updated_at: Date | string | null;
-}) {
-  return {
-    id: row.id,
-    entityId: row.entity_id,
-    data: (row.data ?? {}) as Record<string, unknown>,
-    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
-    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
-  };
-}
 
 function handleCalendarError(error: any, fallbackMessage: string): never {
   const msg = error instanceof Error ? error.message : String(error);

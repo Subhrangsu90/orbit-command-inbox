@@ -448,41 +448,18 @@ function CalendarContainer() {
     }
   }, [viewMode]);
 
-  // Realtime notification sync via SSE
+  // Listen for the custom "calendar_event_changed" event dispatched by global NotificationProvider
   useEffect(() => {
-    if (!isCalConnected) return;
-
-    let eventSource: EventSource | null = null;
-    let retryTimeout: NodeJS.Timeout;
-
-    function connect() {
-      eventSource = new EventSource("/api/sse");
-
-      eventSource.onmessage = (event) => {
-        if (event.data === "connected") {
-          console.log("[SSE] Connected to notifications stream.");
-        }
-      };
-
-      eventSource.addEventListener("calendar_event_changed", () => {
-        console.info("[SSE] Realtime calendar event notification received");
-        void refetch();
-      });
-
-      eventSource.onerror = (err) => {
-        console.warn("[SSE] Connection lost, retrying in 5s...", err);
-        eventSource?.close();
-        retryTimeout = setTimeout(connect, 5000);
-      };
+    function handleCalendarEventChanged() {
+      console.info("[Event] Realtime calendar event notification received via global provider");
+      void refetch();
     }
 
-    connect();
-
+    window.addEventListener("calendar_event_changed", handleCalendarEventChanged);
     return () => {
-      eventSource?.close();
-      clearTimeout(retryTimeout);
+      window.removeEventListener("calendar_event_changed", handleCalendarEventChanged);
     };
-  }, [isCalConnected, refetch]);
+  }, [refetch]);
 
   // Keyboard navigation: J/K for navigating range, C for create, R for refresh, T for today
   useEffect(() => {

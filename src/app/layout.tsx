@@ -5,6 +5,7 @@ import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { WorkspacePreferencesProvider } from "~/app/_components/workspacePreferencesContext";
+import { NotificationProvider } from "~/app/_components/notificationContext";
 
 export const metadata: Metadata = {
   title: {
@@ -28,7 +29,9 @@ export default function RootLayout({
       <body>
         <TRPCReactProvider>
           <WorkspacePreferencesProvider>
-            {children}
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
           </WorkspacePreferencesProvider>
         </TRPCReactProvider>
       </body>

@@ -429,7 +429,7 @@ export const emailsRouter = createTRPCRouter({
     )
     .output(listEmailsOutputModel)
     .query(async ({ ctx, input }) => {
-      const { searchSemantic } = await import("./vectorSearch");
+      const { searchSemantic } = await import("~/server/lib/ai/embeddings");
       return searchSemantic(ctx.session.user.id, input.q, input.limit);
     }),
 

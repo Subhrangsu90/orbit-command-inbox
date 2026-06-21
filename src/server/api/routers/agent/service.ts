@@ -13,11 +13,7 @@ import type {
   ExecutedAction,
   CalendarActionEvent,
 } from "~/server/integrations/types";
-
-export type Message = {
-  role: "user" | "assistant" | "system";
-  content: string;
-};
+import type { Message } from "./model";
 
 type ResponseInputItem = {
   role: "user" | "assistant";

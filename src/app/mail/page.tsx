@@ -269,54 +269,29 @@ function MailboxHome() {
   const labelsData = labelsQuery.data;
   const refetchLabels = labelsQuery.refetch;
 
-  // SSE Webhook real-time notification integration
+  // Listen for the custom "email_received" event dispatched by global NotificationProvider
   useEffect(() => {
-    if (!isConnected) return;
+    function handleEmailReceived() {
+      console.info("[Event] Realtime email notification received via global provider");
+      void emailsQuery.refetch();
+      void draftsQuery.refetch();
 
-    let eventSource: EventSource | null = null;
-    let retryTimeout: NodeJS.Timeout;
-
-    function connect() {
-      eventSource = new EventSource("/api/sse");
-
-      eventSource.onmessage = (event) => {
-        if (event.data === "connected") {
-          console.log("[SSE] Connected to notifications stream.");
+      if (typeof window !== "undefined" && "Notification" in window) {
+        if (Notification.permission === "granted") {
+          new Notification("New Email Received", {
+            body: "Check your inbox for new messages.",
+          });
+        } else if (Notification.permission !== "denied") {
+          void Notification.requestPermission();
         }
-      };
-
-      eventSource.addEventListener("email_received", () => {
-        console.info("[SSE] Realtime email notification received");
-        void emailsQuery.refetch();
-        void draftsQuery.refetch();
-
-        if (typeof window !== "undefined" && "Notification" in window) {
-          if (Notification.permission === "granted") {
-            new Notification("New Email Received", {
-              body: "Check your inbox for new messages.",
-            });
-          } else if (Notification.permission !== "denied") {
-            void Notification.requestPermission();
-          }
-        }
-      });
-
-      eventSource.onerror = (err) => {
-        console.warn("[SSE] Connection lost, retrying in 5s...", err);
-        eventSource?.close();
-        retryTimeout = setTimeout(connect, 5000);
-      };
+      }
     }
 
-    connect();
-
+    window.addEventListener("email_received", handleEmailReceived);
     return () => {
-      if (eventSource) {
-        eventSource.close();
-      }
-      clearTimeout(retryTimeout);
+      window.removeEventListener("email_received", handleEmailReceived);
     };
-  }, [isConnected, emailsQuery.refetch, draftsQuery.refetch]);
+  }, [emailsQuery.refetch, draftsQuery.refetch]);
 
   function refetchMailbox() {
     return mailbox === "drafts" ? draftsQuery.refetch() : emailsQuery.refetch();

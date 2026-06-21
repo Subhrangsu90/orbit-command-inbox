@@ -1,5 +1,4 @@
 import type { IntegrationDefinition } from "../types";
-import { corsair, ensureCorsairConfigured } from "~/server/corsair";
 import { generateOAuthUrl } from "corsair/oauth";
 import { env } from "~/env";
 
@@ -8,6 +7,7 @@ export const gmailDefinition: IntegrationDefinition = {
   label: "Gmail",
 
   async getStatus(tenantId) {
+    const { corsair, ensureCorsairConfigured } = await import("~/server/corsair");
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
     try {
@@ -75,6 +75,7 @@ export const gmailDefinition: IntegrationDefinition = {
   },
 
   async getConnectUrl(tenantId, _redirectTo) {
+    const { corsair, ensureCorsairConfigured } = await import("~/server/corsair");
     await ensureCorsairConfigured();
     const redirectUri = `${env.BETTER_AUTH_URL}/api/corsair/auth/callback`;
     try {
@@ -90,6 +91,7 @@ export const gmailDefinition: IntegrationDefinition = {
   },
 
   async disconnect(tenantId) {
+    const { corsair, ensureCorsairConfigured } = await import("~/server/corsair");
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
     try {

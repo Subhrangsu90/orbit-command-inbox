@@ -4,11 +4,7 @@ import { eq, and, desc, asc } from "drizzle-orm";
 import { agentService } from "./service";
 import { createGeminiChatClient, createOpenAIChatClient } from "~/server/api/llm";
 import crypto from "crypto";
-
-export type Message = {
-  role: "user" | "assistant" | "system";
-  content: string;
-};
+import type { Message } from "./model";
 
 export const roomsService = {
   async listRooms(userId: string) {

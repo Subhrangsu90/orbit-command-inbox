@@ -233,48 +233,23 @@ export const draftActionOutputModel = z.object({
   success: z.boolean(),
 });
 
-export const localSearchOperatorModel = z.enum([
-  "equals",
-  "contains",
-  "startsWith",
-  "endsWith",
-  "in",
-  "gt",
-  "gte",
-  "lt",
-  "lte",
-  "before",
-  "after",
-  "between",
-]);
+import {
+  localSearchOperatorSchema,
+  localSearchFilterSchema,
+  localEntitySchema,
+  localSearchOutputSchema,
+} from "~/server/lib/search/localSearch";
 
-export const localSearchFilterModel = z.object({
-  field: z.string().min(1),
-  operator: localSearchOperatorModel,
-  value: z.union([
-    z.string(),
-    z.number(),
-    z.array(z.string()),
-    z.array(z.number()),
-  ]),
-});
+export const localSearchOperatorModel = localSearchOperatorSchema;
+export const localSearchFilterModel = localSearchFilterSchema;
 
 export const localSearchInputModel = z.object({
   entity: z.enum(["messages", "drafts", "labels", "threads"]),
-  filters: z.array(localSearchFilterModel).default([]),
+  filters: z.array(localSearchFilterSchema).default([]),
   limit: z.number().min(1).max(100).default(50),
   offset: z.number().min(0).default(0),
 });
 
-export const localEntityModel = z.object({
-  id: z.string(),
-  entityId: z.string(),
-  data: z.record(z.string(), z.unknown()),
-  createdAt: z.string().nullable(),
-  updatedAt: z.string().nullable(),
-});
+export const localEntityModel = localEntitySchema;
+export const localSearchOutputModel = localSearchOutputSchema;
 
-export const localSearchOutputModel = z.object({
-  rows: z.array(localEntityModel),
-  source: z.literal("corsair-local-db"),
-});

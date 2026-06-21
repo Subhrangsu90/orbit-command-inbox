@@ -54,25 +54,7 @@ export function findDefinition(id: string): IntegrationDefinition | undefined {
   return integrations.find((i) => i.definition.id === id)?.definition;
 }
 
-/** All corsair plugins (for createCorsair({ plugins })). */
-export function allCorsairPlugins(): unknown[] {
-  return integrations
-    .filter((i) => i.corsairPlugin != null)
-    .map((i) => i.corsairPlugin!);
-}
 
-/** All corsair credentials keyed by provider (for setupCorsair({ credentials })). */
-export function allCorsairCredentials(
-  env: any,
-): Record<string, Record<string, unknown>> {
-  const result: Record<string, Record<string, unknown>> = {};
-  for (const entry of integrations) {
-    if (entry.corsairCredentials) {
-      result[entry.definition.id] = entry.corsairCredentials(env);
-    }
-  }
-  return result;
-}
 
 /** All agent tools flattened (for the LLM tool parameter). */
 export function allAgentTools(): AgentTool[] {

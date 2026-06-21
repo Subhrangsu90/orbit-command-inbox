@@ -1,5 +1,6 @@
 import "dotenv/config";
-import { corsair, ensureCorsairConfigured } from "./corsair.js";
+import { corsair, ensureCorsairConfigured } from "../src/server/corsair";
+import { calendarService } from "../src/server/api/routers/calendar/service";
 
 async function getGoogleCalendarAccessToken(client: any) {
   const [s, c, d] = await Promise.all([
@@ -39,8 +40,6 @@ async function getGoogleCalendarAccessToken(client: any) {
   
   return data.access_token;
 }
-
-import { calendarService } from "./api/routers/calendar/service.js";
 
 async function main() {
   await ensureCorsairConfigured();

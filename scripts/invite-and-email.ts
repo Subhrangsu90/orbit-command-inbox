@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { calendarService } from "./api/routers/calendar/service.js";
-import { emailsService } from "./api/routers/emails/service.js";
-import { ensureCorsairConfigured } from "./corsair.js";
+import { calendarService } from "../src/server/api/routers/calendar/service";
+import { emailsService } from "../src/server/api/routers/emails/service";
+import { ensureCorsairConfigured } from "../src/server/corsair";
 
 async function main() {
   await ensureCorsairConfigured();

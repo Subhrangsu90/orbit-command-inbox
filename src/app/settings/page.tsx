@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { AlertCircle, ShieldCheck, X } from "lucide-react";
 import { WorkspaceLayout } from "~/app/_components/WorkspaceLayout";
 import { useWorkspacePreferences } from "~/app/_components/workspacePreferencesContext";
@@ -192,7 +192,7 @@ function ToggleSwitch({
   );
 }
 
-export default function SettingsPage() {
+function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const session = authClient.useSession();
@@ -785,5 +785,13 @@ export default function SettingsPage() {
         </div>
       </div>
     </WorkspaceLayout>
+  );
+}
+
+export default function SettingsPageWithSuspense() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsPage />
+    </Suspense>
   );
 }

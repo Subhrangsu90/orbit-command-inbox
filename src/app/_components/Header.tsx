@@ -5,6 +5,7 @@ import { ThemeToggleButton } from "./ThemeControls";
 import { useWorkspacePreferences } from "./workspacePreferencesContext";
 import { authClient } from "~/server/better-auth/client";
 import { Logo } from "./Logo";
+import { NotificationBell } from "./NotificationBell";
 
 type HeaderProps = {
   user: {
@@ -39,6 +40,7 @@ export function Header({ user }: HeaderProps) {
             void updatePreferences(nextAppearance).catch(() => undefined)
           }
         />
+        <NotificationBell />
         
 
         <Link
