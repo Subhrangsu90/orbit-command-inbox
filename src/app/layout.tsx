@@ -9,6 +9,7 @@ import { NotificationProvider } from "~/app/_components/notificationContext";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.tacta.online"),
   title: {
     default: "Tacta | Intelligent Workspace Command Center",
     template: "%s | Tacta",
