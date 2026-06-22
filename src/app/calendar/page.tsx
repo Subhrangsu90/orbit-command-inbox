@@ -137,6 +137,19 @@ function CalendarContainer() {
   );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [anchorPosition, setAnchorPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const handleSetSelectedEventId = (id: string | null) => {
+    setSelectedEventId(id);
+    if (!id) {
+      setAnchorPosition(null);
+    }
+  };
 
   useEffect(() => {
     if (linkedEventId) setSelectedEventId(linkedEventId);
@@ -889,7 +902,8 @@ function CalendarContainer() {
                   monthGridDays={monthGridDays}
                   getEventsForDate={getEventsForDate}
                   allCalendars={allCalendars}
-                  setSelectedEventId={setSelectedEventId}
+                  setSelectedEventId={handleSetSelectedEventId}
+                  onAnchorSelect={setAnchorPosition}
                   handleCellClick={handleCellClick}
                   setCurrentDate={setCurrentDate}
                   setViewMode={setViewMode}
@@ -903,7 +917,8 @@ function CalendarContainer() {
                   getAllDayEvents={getAllDayEvents}
                   getTimedEventsWithLayout={getTimedEventsWithLayout}
                   allCalendars={allCalendars}
-                  setSelectedEventId={setSelectedEventId}
+                  setSelectedEventId={handleSetSelectedEventId}
+                  onAnchorSelect={setAnchorPosition}
                   handleTimeSlotClick={handleTimeSlotClick}
                   formatTimeRange={formatTimeRange}
                   scrollContainerRef={scrollContainerRef}
@@ -916,7 +931,8 @@ function CalendarContainer() {
                   getAllDayEvents={getAllDayEvents}
                   getTimedEventsWithLayout={getTimedEventsWithLayout}
                   allCalendars={allCalendars}
-                  setSelectedEventId={setSelectedEventId}
+                  setSelectedEventId={handleSetSelectedEventId}
+                  onAnchorSelect={setAnchorPosition}
                   handleTimeSlotClick={handleTimeSlotClick}
                   formatTimeRange={formatTimeRange}
                   scrollContainerRef={scrollContainerRef}
@@ -958,7 +974,8 @@ function CalendarContainer() {
               setLocalSearchQuery={setLocalSearchQuery}
               isLoadingLocalSearch={isLoadingLocalSearch}
               localSearchResults={localSearchResults}
-              setSelectedEventId={setSelectedEventId}
+              setSelectedEventId={handleSetSelectedEventId}
+              onAnchorSelect={setAnchorPosition}
               setIsCreateOpen={setIsCreateOpen}
               setEventCalendarId={setEventCalendarId}
               primaryCalendar={primaryCalendar}
@@ -1006,7 +1023,8 @@ function CalendarContainer() {
                 setLocalSearchQuery={setLocalSearchQuery}
                 isLoadingLocalSearch={isLoadingLocalSearch}
                 localSearchResults={localSearchResults}
-                setSelectedEventId={setSelectedEventId}
+                setSelectedEventId={handleSetSelectedEventId}
+                onAnchorSelect={setAnchorPosition}
                 setIsCreateOpen={setIsCreateOpen}
                 setEventCalendarId={setEventCalendarId}
                 primaryCalendar={primaryCalendar}
@@ -1021,7 +1039,8 @@ function CalendarContainer() {
       {selectedEvent && (
         <EventDetailModal
           selectedEvent={selectedEvent}
-          setSelectedEventId={setSelectedEventId}
+          setSelectedEventId={handleSetSelectedEventId}
+          anchorPosition={anchorPosition}
           formatTimeRange={formatTimeRange}
           getResponseBadgeClass={getResponseBadgeClass}
           openEditModal={setIsEditOpen}
@@ -1032,7 +1051,11 @@ function CalendarContainer() {
       {/* Floating Create Event Modal */}
       <EventFormModal
         isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setAnchorPosition(null);
+        }}
+        anchorPosition={anchorPosition}
         title="Create Event"
         submitLabel="Create Event"
         isPending={createMutation.isPending}
@@ -1046,7 +1069,11 @@ function CalendarContainer() {
       {selectedEvent && (
         <EventFormModal
           isOpen={isEditOpen}
-          onClose={() => setIsEditOpen(false)}
+          onClose={() => {
+            setIsEditOpen(false);
+            setAnchorPosition(null);
+          }}
+          anchorPosition={anchorPosition}
           title="Edit Event"
           submitLabel="Save Changes"
           isPending={updateMutation.isPending}

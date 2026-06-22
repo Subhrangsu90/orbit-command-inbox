@@ -8,6 +8,7 @@ interface DayViewProps {
   getTimedEventsWithLayout: (date: Date) => any[];
   allCalendars: any[];
   setSelectedEventId: (id: string | null) => void;
+  onAnchorSelect?: (rect: { top: number; left: number; width: number; height: number }) => void;
   handleTimeSlotClick: (date: Date, hour: number) => void;
   formatTimeRange: (start: any, end: any) => string;
   scrollContainerRef: React.RefObject<HTMLDivElement | null>;
@@ -19,6 +20,7 @@ export const DayView: React.FC<DayViewProps> = ({
   getTimedEventsWithLayout,
   allCalendars,
   setSelectedEventId,
+  onAnchorSelect,
   handleTimeSlotClick,
   formatTimeRange,
   scrollContainerRef,
@@ -52,7 +54,16 @@ export const DayView: React.FC<DayViewProps> = ({
                 return (
                   <div
                     key={ev.id}
-                    onClick={() => setSelectedEventId(ev.id ?? null)}
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      onAnchorSelect?.({
+                        top: rect.top,
+                        left: rect.left,
+                        width: rect.width,
+                        height: rect.height,
+                      });
+                      setSelectedEventId(ev.id ?? null);
+                    }}
                     className={`px-2.5 py-1 text-[10px] rounded-full font-bold cursor-pointer hover:opacity-90 shadow-sm border ${colorClasses.pill}`}
                   >
                     All-Day: {ev.summary || "(No Title)"}
@@ -87,7 +98,16 @@ export const DayView: React.FC<DayViewProps> = ({
           {Array.from({ length: 24 }).map((_, hour) => (
             <div
               key={hour}
-              onClick={() => handleTimeSlotClick(currentDate, hour)}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                onAnchorSelect?.({
+                  top: rect.top,
+                  left: rect.left,
+                  width: rect.width,
+                  height: rect.height,
+                });
+                handleTimeSlotClick(currentDate, hour);
+              }}
               className="h-16 border-b border-outline-variant/20 hover:bg-surface-container/20 cursor-pointer transition-colors"
             />
           ))}
@@ -110,6 +130,13 @@ export const DayView: React.FC<DayViewProps> = ({
                 key={event.id}
                 onClick={(e) => {
                   e.stopPropagation();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  onAnchorSelect?.({
+                    top: rect.top,
+                    left: rect.left,
+                    width: rect.width,
+                    height: rect.height,
+                  });
                   setSelectedEventId(event.id ?? null);
                 }}
                 className={`absolute p-3 rounded-xl border text-left overflow-hidden cursor-pointer transition-all shadow-sm z-10 hover:z-20 ${colorClasses.block}`}

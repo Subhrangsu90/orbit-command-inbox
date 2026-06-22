@@ -9,6 +9,7 @@ interface MonthViewProps {
   getEventsForDate: (date: Date) => any[];
   allCalendars: any[];
   setSelectedEventId: (id: string | null) => void;
+  onAnchorSelect?: (rect: { top: number; left: number; width: number; height: number }) => void;
   handleCellClick: (date: Date) => void;
   setCurrentDate: (date: Date) => void;
   setViewMode: (mode: "day" | "week" | "month" | "year") => void;
@@ -20,6 +21,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
   getEventsForDate,
   allCalendars,
   setSelectedEventId,
+  onAnchorSelect,
   handleCellClick,
   setCurrentDate,
   setViewMode,
@@ -64,7 +66,16 @@ export const MonthView: React.FC<MonthViewProps> = ({
                   {day.getDate()}
                 </span>
                 <button
-                  onClick={() => handleCellClick(day)}
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    onAnchorSelect?.({
+                      top: rect.top,
+                      left: rect.left,
+                      width: rect.width,
+                      height: rect.height,
+                    });
+                    handleCellClick(day);
+                  }}
                   className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-primary hover:bg-primary/5 border border-outline-variant/40 transition"
                   title="Schedule event"
                 >
@@ -82,7 +93,16 @@ export const MonthView: React.FC<MonthViewProps> = ({
                   return (
                     <div
                       key={ev.id}
-                      onClick={() => setSelectedEventId(ev.id ?? null)}
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        onAnchorSelect?.({
+                          top: rect.top,
+                          left: rect.left,
+                          width: rect.width,
+                          height: rect.height,
+                        });
+                        setSelectedEventId(ev.id ?? null);
+                      }}
                       className={`px-1.5 py-0.5 text-[10px] rounded font-medium truncate cursor-pointer transition border ${colorClasses.pill}`}
                       title={ev.summary || "(No Title)"}
                     >

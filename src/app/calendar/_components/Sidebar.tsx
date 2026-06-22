@@ -32,6 +32,7 @@ interface SidebarProps {
   isLoadingLocalSearch: boolean;
   localSearchResults: any;
   setSelectedEventId: (id: string | null) => void;
+  onAnchorSelect?: (rect: { top: number; left: number; width: number; height: number }) => void;
   setIsCreateOpen: (open: boolean) => void;
   setEventCalendarId: (id: string) => void;
   primaryCalendar: any;
@@ -59,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isLoadingLocalSearch,
   localSearchResults,
   setSelectedEventId,
+  onAnchorSelect,
   setIsCreateOpen,
   setEventCalendarId,
   primaryCalendar,
@@ -86,8 +88,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="fixed inset-0 z-30" onClick={() => setCreateDropdownOpen(false)} />
             <div className="absolute left-0 mt-2 w-full bg-surface-container-lowest border border-outline rounded-xl shadow-xl z-40 py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
               <button
-                onClick={() => {
+                onClick={(e) => {
                   setCreateDropdownOpen(false);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  onAnchorSelect?.({
+                    top: rect.top,
+                    left: rect.left,
+                    width: rect.width,
+                    height: rect.height,
+                  });
                   setEventCalendarId(primaryCalendar?.id || "primary");
                   setIsCreateOpen(true);
                 }}
@@ -96,8 +105,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Calendar className="size-3.5 text-primary" /> Event
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
                   setCreateDropdownOpen(false);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  onAnchorSelect?.({
+                    top: rect.top,
+                    left: rect.left,
+                    width: rect.width,
+                    height: rect.height,
+                  });
                   const tasksCal = allCalendars.find(
                     (c) => c.id.includes("tasks") || c.name.toLowerCase().includes("tasks")
                   );
@@ -259,7 +275,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 return (
                   <button
                     key={row.id}
-                    onClick={() => setSelectedEventId(row.entityId)}
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      onAnchorSelect?.({
+                        top: rect.top,
+                        left: rect.left,
+                        width: rect.width,
+                        height: rect.height,
+                      });
+                      setSelectedEventId(row.entityId);
+                    }}
                     className="w-full text-left p-1.5 rounded hover:bg-surface-container-high transition border border-transparent hover:border-outline-variant/30 flex flex-col gap-0.5"
                   >
                     <span className="text-2xs font-semibold text-on-surface truncate">{eventData.summary || "(No Title)"}</span>
