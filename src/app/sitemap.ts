@@ -1,26 +1,19 @@
 import { type MetadataRoute } from "next";
+import { SITE_CONFIG, ROUTES_CONFIG } from "~/app/_lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://www.tacta.online";
+  // Dynamically build the sitemap using public route configuration
+  const publicRoutes = Object.values(ROUTES_CONFIG).filter(
+    (route) => route.isPublic && route.path !== "/login" && route.path !== "/signup"
+  );
 
-  return [
-    {
-      url: baseUrl,
+  return publicRoutes.map((route) => {
+    const isHome = route.path === "/";
+    return {
+      url: `${SITE_CONFIG.baseUrl}${route.path === "/" ? "" : route.path}`,
       lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 1.0,
-    },
-    {
-      url: `${baseUrl}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
-    {
-      url: `${baseUrl}/terms`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.3,
-    },
-  ];
+      changeFrequency: isHome ? "weekly" : "monthly",
+      priority: isHome ? 1.0 : 0.3,
+    };
+  });
 }

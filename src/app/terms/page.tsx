@@ -1,18 +1,9 @@
 import { type Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "~/app/_components/Logo";
+import { getRouteMetadata } from "~/app/_lib/seo";
 
-export const metadata: Metadata = {
-  title: "Terms of Service",
-  description: "Terms of Service for Tacta Workspace. Review the terms, rules, and agreements for using the Tacta command center.",
-  alternates: {
-    canonical: "https://www.tacta.online/terms",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+export const metadata: Metadata = getRouteMetadata("terms");
 
 export default function TermsPage() {
   return (

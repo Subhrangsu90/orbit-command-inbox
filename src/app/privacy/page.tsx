@@ -1,18 +1,9 @@
 import { type Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "~/app/_components/Logo";
+import { getRouteMetadata } from "~/app/_lib/seo";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description: "Privacy Policy for Tacta Workspace. Learn about how we secure your data and handle Gmail/Google Calendar OAuth scopes.",
-  alternates: {
-    canonical: "https://www.tacta.online/privacy",
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+export const metadata: Metadata = getRouteMetadata("privacy");
 
 export default function PrivacyPage() {
   return (

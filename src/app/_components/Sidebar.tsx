@@ -6,6 +6,7 @@ import { useState } from "react";
 import { api } from "~/trpc/react";
 import { Logo } from "./Logo";
 import { authClient } from "~/server/better-auth/client";
+import { sidebarTabs } from "~/app/_lib/navigation";
 
 type SidebarProps = {
   user: {
@@ -49,11 +50,11 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
   };
 
   const getActiveTab = () => {
-    if (pathname.startsWith("/chat")) return "agent";
-    if (pathname.startsWith("/mail") || searchParams.has("mailbox")) return "mail";
-    if (pathname.startsWith("/calendar")) return "calendar";
-    if (pathname.startsWith("/settings")) return "settings";
-    return "mail"; // fallback
+    const active = sidebarTabs.find((tab) => {
+      const basePath = tab.href.split("?")[0]!;
+      return pathname.startsWith(basePath);
+    });
+    return active ? active.id : "mail";
   };
 
   const activeTab = getActiveTab();
@@ -79,59 +80,27 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
 
         {/* App Icons (Middle) */}
         <div className="flex-grow flex flex-col items-center gap-4 w-full px-2">
-          {/* Agent Chat Icon */}
-          <Link
-            href="/chat"
-            onClick={() => {
-              if (activeTab === "agent" && !isExpanded) {
-                onToggleExpanded();
-              }
-            }}
-            className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
-              activeTab === "agent"
-                ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
-                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-            }`}
-            title="Agent Copilot"
-          >
-            <span className="material-symbols-outlined text-2xl font-bold">forum</span>
-          </Link>
-
-          {/* Mail Icon */}
-          <Link
-            href="/mail?mailbox=inbox"
-            onClick={() => {
-              if (activeTab === "mail" && !isExpanded) {
-                onToggleExpanded();
-              }
-            }}
-            className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
-              activeTab === "mail"
-                ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
-                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-            }`}
-            title="Mailbox"
-          >
-            <span className="material-symbols-outlined text-2xl font-bold">mail</span>
-          </Link>
-
-          {/* Calendar Icon */}
-          <Link
-            href="/calendar"
-            onClick={() => {
-              if (activeTab === "calendar" && !isExpanded) {
-                onToggleExpanded();
-              }
-            }}
-            className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
-              activeTab === "calendar"
-                ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
-                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-            }`}
-            title="Calendar"
-          >
-            <span className="material-symbols-outlined text-2xl font-bold">calendar_month</span>
-          </Link>
+          {sidebarTabs
+            .filter((tab) => tab.id !== "settings") // Keep settings at the bottom
+            .map((tab) => (
+              <Link
+                key={tab.id}
+                href={tab.href}
+                onClick={() => {
+                  if (activeTab === tab.id && !isExpanded) {
+                    onToggleExpanded();
+                  }
+                }}
+                className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
+                  activeTab === tab.id
+                    ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
+                    : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                }`}
+                title={tab.label}
+              >
+                <span className="material-symbols-outlined text-2xl font-bold">{tab.icon}</span>
+              </Link>
+            ))}
         </div>
 
         {/* Settings & Profile Popover Trigger (Bottom) */}
@@ -287,16 +256,13 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
           {/* Header depending on activeTab */}
           <div className="px-5 mb-6 flex h-10 items-center shrink-0">
             <h3 className="text-title-sm font-sans font-bold text-on-surface capitalize">
-              {activeTab === "agent" && "Agent Chat"}
-              {activeTab === "mail" && "Mailbox"}
-              {activeTab === "calendar" && "Calendar"}
-              {activeTab === "settings" && "Settings"}
+              {sidebarTabs.find((tab) => tab.id === activeTab)?.label ?? "Workspace"}
             </h3>
           </div>
 
           {/* Content Pane */}
           <div className="flex-grow overflow-y-auto px-3 space-y-4">
-            {/* AGENT TAB */}
+            {/* AGENT TAB (Dynamic list of rooms) */}
             {activeTab === "agent" && (
               <div className="flex h-full min-h-0 flex-col gap-4">
                 {/* New Chat Button */}
@@ -340,62 +306,49 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
               </div>
             )}
 
-            {/* MAIL TAB */}
-            {activeTab === "mail" && (
-              <div className="space-y-1">
-                {[
-                  { to: "/mail?mailbox=inbox", label: "Inbox", icon: "inbox" },
-                  { to: "/mail?mailbox=starred", label: "Starred", icon: "star" },
-                  { to: "/mail?mailbox=sent", label: "Sent", icon: "send" },
-                  { to: "/mail?mailbox=drafts", label: "Drafts", icon: "draft" },
-                ].map((item) => {
-                  const target = new URL(item.to, "https://tacta.online");
-                  const targetMailbox = target.searchParams.get("mailbox");
-                  const isActive = pathname.startsWith("/mail") && currentMailbox === targetMailbox;
+            {/* STATIC TABS (Mail, Calendar, Settings, etc.) */}
+            {activeTab !== "agent" && (() => {
+              const currentTab = sidebarTabs.find((tab) => tab.id === activeTab);
+              if (!currentTab?.subItems) return null;
 
-                  return (
-                    <Link
-                      key={item.to}
-                      href={item.to}
-                      className={`gap-3 px-3.5 flex h-9 items-center rounded-xl transition-all ${
-                        isActive
-                          ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
-                          : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-lg shrink-0">{item.icon}</span>
-                      <span className="text-xs font-medium font-sans">{item.label}</span>
-                    </Link>
+              const isRouteActive = (href: string) => {
+                if (href.includes("?")) {
+                  const [path, query] = href.split("?");
+                  const params = new URLSearchParams(query);
+                  const pathMatches = pathname.startsWith(path!);
+                  const queryMatches = Array.from(params.entries()).every(
+                    ([key, val]) => searchParams.get(key) === val
                   );
-                })}
-              </div>
-            )}
+                  return pathMatches && queryMatches;
+                }
+                return pathname === href || (href !== "/" && pathname.startsWith(href));
+              };
 
-            {/* CALENDAR TAB */}
-            {activeTab === "calendar" && (
-              <div className="space-y-1">
-                <Link
-                  href="/calendar"
-                  className={`gap-3 px-3.5 flex h-9 items-center rounded-xl transition-all bg-secondary-container text-on-secondary-container font-semibold shadow-xs`}
-                >
-                  <span className="material-symbols-outlined text-lg shrink-0">calendar_month</span>
-                  <span className="text-xs font-medium font-sans">Calendar Agenda</span>
-                </Link>
-              </div>
-            )}
+              return (
+                <div className="space-y-1">
+                  {currentTab.subItems.map((item) => {
+                    const isActive = isRouteActive(item.href);
 
-            {/* SETTINGS TAB */}
-            {activeTab === "settings" && (
-              <div className="space-y-1">
-                <Link
-                  href="/settings"
-                  className={`gap-3 px-3.5 flex h-9 items-center rounded-xl transition-all bg-secondary-container text-on-secondary-container font-semibold shadow-xs`}
-                >
-                  <span className="material-symbols-outlined text-lg shrink-0">settings</span>
-                  <span className="text-xs font-medium font-sans">Settings Panel</span>
-                </Link>
-              </div>
-            )}
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`gap-3 px-3.5 flex h-9 items-center rounded-xl transition-all ${
+                          isActive
+                            ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
+                            : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
+                        }`}
+                      >
+                        <span className="material-symbols-outlined text-lg shrink-0">
+                          {item.icon}
+                        </span>
+                        <span className="text-xs font-medium font-sans">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
