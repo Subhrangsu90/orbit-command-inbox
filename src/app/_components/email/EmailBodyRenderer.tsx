@@ -9,6 +9,7 @@ import { ExternalLink } from "lucide-react";
 type EmailBodyRendererProps = {
   content: string;
   contentType?: "html" | "markdown" | "text";
+  noBorder?: boolean;
 };
 
 const linkifyOptions = {
@@ -116,7 +117,7 @@ function injectEmailFrameStyles(content: string) {
   return parsed;
 }
 
-function HtmlEmailBody({ content }: { content: string }) {
+function HtmlEmailBody({ content, noBorder }: { content: string; noBorder?: boolean }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState(420);
   const [width, setWidth] = useState<number | undefined>();
@@ -234,7 +235,7 @@ function HtmlEmailBody({ content }: { content: string }) {
   }, [srcDoc]);
 
   return (
-    <div className="border-outline-variant/60 w-full overflow-x-auto overflow-y-hidden rounded-2xl border bg-transparent shadow-xs">
+    <div className={noBorder ? "w-full overflow-x-auto overflow-y-hidden bg-transparent" : "border-outline-variant/60 w-full overflow-x-auto overflow-y-hidden rounded-2xl border bg-transparent shadow-xs"}>
       <iframe
         ref={iframeRef}
         title="Email body"
@@ -389,9 +390,10 @@ function MarkdownBody({ content }: { content: string }) {
 export function EmailBodyRenderer({
   content,
   contentType = "text",
+  noBorder = false,
 }: EmailBodyRendererProps) {
   if (contentType === "html") {
-    return <HtmlEmailBody content={content} />;
+    return <HtmlEmailBody content={content} noBorder={noBorder} />;
   }
 
   return (

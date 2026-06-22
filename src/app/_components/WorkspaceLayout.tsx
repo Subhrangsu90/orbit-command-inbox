@@ -22,6 +22,22 @@ export function WorkspaceLayout({
   const { preferences, isLoading: isLoadingPrefs } = useWorkspacePreferences();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
+  // Load sidebar state from localStorage on client mount
+  useEffect(() => {
+    const saved = localStorage.getItem("sidebar_expanded");
+    if (saved !== null) {
+      setIsSidebarExpanded(saved === "true");
+    }
+  }, []);
+
+  const handleToggleSidebar = () => {
+    setIsSidebarExpanded((isExpanded) => {
+      const next = !isExpanded;
+      localStorage.setItem("sidebar_expanded", String(next));
+      return next;
+    });
+  };
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!session.isPending && !session.data) {
@@ -102,9 +118,7 @@ export function WorkspaceLayout({
     <div className="bg-background text-on-background flex min-h-screen">
       <Sidebar
         isExpanded={isSidebarExpanded}
-        onToggleExpanded={() =>
-          setIsSidebarExpanded((isExpanded) => !isExpanded)
-        }
+        onToggleExpanded={handleToggleSidebar}
         user={user}
       />
 

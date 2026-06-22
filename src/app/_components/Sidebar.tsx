@@ -19,7 +19,6 @@ type SidebarProps = {
 };
 
 export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
-  const [isBrandHovered, setIsBrandHovered] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -61,7 +60,7 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
 
   return (
     <aside
-      className={`bg-surface-container-low border-outline-variant fixed top-0 left-0 z-45 hidden h-full border-r transition-[width] duration-200 md:flex ${
+      className={`group bg-surface-container-low border-outline-variant fixed top-0 left-0 z-45 hidden h-full border-r transition-[width] duration-200 md:flex ${
         isExpanded ? "w-70" : "w-18"
       }`}
     >
@@ -69,22 +68,13 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
       <div className="w-18 border-r border-outline-variant/30 flex flex-col items-center py-6 shrink-0 bg-surface-container-lowest">
         {/* Tacta Logo at Top */}
         <div className="mb-8 flex h-10 items-center justify-center">
-          <button
-            type="button"
-            onClick={onToggleExpanded}
-            onMouseEnter={() => setIsBrandHovered(true)}
-            onMouseLeave={() => setIsBrandHovered(false)}
-            title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
-            className="text-primary hover:bg-surface-container-high grid size-10 place-items-center rounded-2xl transition-colors"
+          <Link
+            href="/chat"
+            className="text-primary hover:opacity-85 flex size-10 items-center justify-center transition-opacity"
+            title="Tacta Home"
           >
-            {isBrandHovered ? (
-              <span className="material-symbols-outlined text-2xl font-semibold">
-                {isExpanded ? "left_panel_close" : "left_panel_open"}
-              </span>
-            ) : (
-              <Logo showText={false} size={24} />
-            )}
-          </button>
+            <Logo showText={false} size={24} />
+          </Link>
         </div>
 
         {/* App Icons (Middle) */}
@@ -92,6 +82,11 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
           {/* Agent Chat Icon */}
           <Link
             href="/chat"
+            onClick={() => {
+              if (activeTab === "agent" && !isExpanded) {
+                onToggleExpanded();
+              }
+            }}
             className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
               activeTab === "agent"
                 ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
@@ -105,6 +100,11 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
           {/* Mail Icon */}
           <Link
             href="/mail?mailbox=inbox"
+            onClick={() => {
+              if (activeTab === "mail" && !isExpanded) {
+                onToggleExpanded();
+              }
+            }}
             className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
               activeTab === "mail"
                 ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
@@ -118,6 +118,11 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
           {/* Calendar Icon */}
           <Link
             href="/calendar"
+            onClick={() => {
+              if (activeTab === "calendar" && !isExpanded) {
+                onToggleExpanded();
+              }
+            }}
             className={`flex items-center justify-center size-12 rounded-2xl transition-all ${
               activeTab === "calendar"
                 ? "bg-secondary-container text-on-secondary-container font-semibold shadow-xs"
@@ -188,7 +193,10 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
               <div className="py-1 space-y-0.5">
                 <Link
                   href="/settings?tab=account"
-                  onClick={() => setIsProfileMenuOpen(false)}
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    if (activeTab === "settings" && !isExpanded) onToggleExpanded();
+                  }}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
                 >
                   <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
@@ -199,7 +207,10 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
 
                 <Link
                   href="/settings?tab=appearance"
-                  onClick={() => setIsProfileMenuOpen(false)}
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    if (activeTab === "settings" && !isExpanded) onToggleExpanded();
+                  }}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
                 >
                   <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
@@ -210,7 +221,10 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
 
                 <Link
                   href="/settings?tab=appearance"
-                  onClick={() => setIsProfileMenuOpen(false)}
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    if (activeTab === "settings" && !isExpanded) onToggleExpanded();
+                  }}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
                 >
                   <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
@@ -221,7 +235,10 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
 
                 <Link
                   href="/settings?tab=shortcuts"
-                  onClick={() => setIsProfileMenuOpen(false)}
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    if (activeTab === "settings" && !isExpanded) onToggleExpanded();
+                  }}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
                 >
                   <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
@@ -232,7 +249,10 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
 
                 <Link
                   href="/settings?tab=integrations"
-                  onClick={() => setIsProfileMenuOpen(false)}
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    if (activeTab === "settings" && !isExpanded) onToggleExpanded();
+                  }}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs hover:bg-surface-container-high hover:text-on-surface transition-colors"
                 >
                   <span className="material-symbols-outlined text-base leading-none text-on-surface-variant/70">
@@ -265,21 +285,13 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
       {isExpanded && (
         <div className="flex-1 flex flex-col py-6 overflow-hidden bg-surface-container-low animate-fade-in">
           {/* Header depending on activeTab */}
-          <div className="px-5 mb-6 flex h-10 items-center justify-between shrink-0">
+          <div className="px-5 mb-6 flex h-10 items-center shrink-0">
             <h3 className="text-title-sm font-sans font-bold text-on-surface capitalize">
               {activeTab === "agent" && "Agent Chat"}
               {activeTab === "mail" && "Mailbox"}
               {activeTab === "calendar" && "Calendar"}
               {activeTab === "settings" && "Settings"}
             </h3>
-            <button
-              type="button"
-              onClick={onToggleExpanded}
-              title="Collapse Sidebar"
-              className="text-on-surface-variant hover:bg-surface-container-high p-1 rounded-lg transition"
-            >
-              <span className="material-symbols-outlined text-lg">left_panel_close</span>
-            </button>
           </div>
 
           {/* Content Pane */}
@@ -387,6 +399,18 @@ export function Sidebar({ user, isExpanded, onToggleExpanded }: SidebarProps) {
           </div>
         </div>
       )}
+
+      {/* Floating Border Toggle Button */}
+      <button
+        type="button"
+        onClick={onToggleExpanded}
+        title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"}
+        className="absolute top-[30px] -right-3.5 z-50 bg-surface-container-high hover:bg-primary hover:text-on-primary text-on-surface-variant flex size-7 items-center justify-center rounded border border-outline-variant shadow-md transition-all duration-200 cursor-pointer group/btn opacity-0 scale-90 pointer-events-none group-hover:opacity-100 group-hover:scale-100 group-hover:pointer-events-auto"
+      >
+        <span className="material-symbols-outlined text-base transition-transform duration-150 select-none">
+          {isExpanded ? "left_panel_close" : "left_panel_open"}
+        </span>
+      </button>
     </aside>
   );
 }

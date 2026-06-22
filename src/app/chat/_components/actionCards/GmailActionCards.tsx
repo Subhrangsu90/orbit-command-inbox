@@ -6,43 +6,46 @@ import { EmailBodyRenderer } from "~/app/_components/email/EmailBodyRenderer";
 export function SendEmailCard({ action }: { action: Extract<ExecutedAction, { type: "send_email" }> }) {
   const hasBody = !!action.body || !!action.htmlBody;
   return (
-    <div className="border-outline-variant/60 bg-surface-container-highest overflow-hidden rounded-2xl border p-4">
-      <div className="flex items-center gap-3">
-        <div className="shrink-0 rounded-xl bg-blue-500/10 p-2 text-blue-500">
-          <Send className="size-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h4 className="text-label-lg text-on-surface font-semibold font-sans">
-            Email sent
-          </h4>
-          <p className="text-body-sm text-on-surface-variant mt-0.5 truncate font-sans">
-            To: {action.to} • {action.subject}
-          </p>
+    <div className="border-outline-variant/50 bg-surface-container-low shadow-sm overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-md">
+      {/* Sleek Window-style Header */}
+      <div className="bg-surface-container-high px-4 py-3 flex items-center justify-between border-b border-outline-variant/30">
+        <div className="flex items-center gap-2.5">
+          <div className="shrink-0 rounded-lg bg-blue-500/10 p-1.5 text-blue-500">
+            <Send className="size-4" />
+          </div>
+          <div>
+            <h4 className="text-label-md text-on-surface font-bold font-sans">
+              Email Sent
+            </h4>
+          </div>
         </div>
         <ActionStatus success={action.success} />
       </div>
 
+      {/* Header Fields Block (Mocking Real Email Headers) */}
+      <div className="px-4 py-3 space-y-2 border-b border-outline-variant/20 bg-surface-container-lowest/50 text-xs">
+        <div className="flex items-baseline gap-2">
+          <span className="text-on-surface-variant font-semibold w-12 text-right">To:</span>
+          <span className="text-on-surface font-medium break-all select-all bg-surface-container-high/40 px-2 py-0.5 rounded-md">{action.to}</span>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-on-surface-variant font-semibold w-12 text-right">Subject:</span>
+          <span className="text-on-surface font-semibold">{action.subject}</span>
+        </div>
+      </div>
+
+      {/* Email Body Content Window */}
       {hasBody && (
-        <div className="mt-3 space-y-3">
-          <div className="grid gap-2">
-            <DetailRow
-              icon={<Mail className="size-4" />}
-              label="To"
-              value={action.to}
-            />
-            <DetailRow
-              icon={<FileText className="size-4" />}
-              label="Subject"
-              value={action.subject}
-            />
+        <div className="bg-surface-container-lowest">
+          <div className="border border-outline-variant/20 bg-white dark:bg-zinc-950 shadow-inner overflow-x-hidden">
+            {action.htmlBody ? (
+              <EmailBodyRenderer content={action.htmlBody} contentType="html" noBorder />
+            ) : (
+              <p className="text-body-sm text-on-surface whitespace-pre-wrap font-sans leading-relaxed">
+                {action.body}
+              </p>
+            )}
           </div>
-          {action.htmlBody ? (
-            <EmailBodyRenderer content={action.htmlBody} contentType="html" />
-          ) : (
-            <p className="text-body-sm text-on-surface whitespace-pre-wrap font-sans">
-              {action.body}
-            </p>
-          )}
         </div>
       )}
     </div>
@@ -50,63 +53,65 @@ export function SendEmailCard({ action }: { action: Extract<ExecutedAction, { ty
 }
 
 export function CreateEmailDraftCard({ action }: { action: Extract<ExecutedAction, { type: "create_email_draft" }> }) {
+  const fromValue = action.senderName && action.senderEmail
+    ? `${action.senderName} <${action.senderEmail}>`
+    : (action.senderEmail ?? action.senderName ?? "Connected Gmail account");
+
   return (
-    <div className="border-primary/30 bg-surface-container-highest overflow-hidden rounded-2xl border p-4">
-      <div className="flex items-center gap-3">
-        <div className="bg-primary/10 text-primary shrink-0 rounded-xl p-2">
-          <Mail className="size-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h4 className="text-label-lg text-on-surface font-semibold font-sans">
-            Email draft ready
-          </h4>
-          <p className="text-body-sm text-on-surface-variant mt-0.5 truncate font-sans">
-            To: {action.to} • {action.subject}
-          </p>
+    <div className="border-primary/25 bg-surface-container-low shadow-sm overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-md">
+      {/* Sleek Window-style Header */}
+      <div className="bg-primary-container/20 px-4 py-3 flex items-center justify-between border-b border-primary/20">
+        <div className="flex items-center gap-2.5">
+          <div className="bg-primary/10 text-primary shrink-0 rounded-lg p-1.5">
+            <Mail className="size-4" />
+          </div>
+          <div>
+            <h4 className="text-label-md text-on-surface font-bold font-sans">
+              Email Draft Ready
+            </h4>
+          </div>
         </div>
         <ActionStatus success={action.success} />
       </div>
 
-      <div className="mt-3 space-y-3">
-        <div className="grid gap-2">
-          <DetailRow
-            icon={<Mail className="size-4" />}
-            label="From"
-            value={
-              action.senderName && action.senderEmail
-                ? `${action.senderName} <${action.senderEmail}>`
-                : (action.senderEmail ??
-                  action.senderName ??
-                  "Connected Gmail account")
-            }
-          />
-          <DetailRow
-            icon={<Mail className="size-4" />}
-            label="To"
-            value={action.to}
-          />
-          <DetailRow
-            icon={<FileText className="size-4" />}
-            label="Subject"
-            value={action.subject}
-          />
+      {/* Header Fields Block (Mocking Real Email Headers) */}
+      <div className="px-4 py-3 space-y-2 border-b border-outline-variant/20 bg-surface-container-lowest/50 text-xs">
+        <div className="flex items-baseline gap-2">
+          <span className="text-on-surface-variant font-semibold w-12 text-right">From:</span>
+          <span className="text-on-surface-variant break-all">{fromValue}</span>
         </div>
-        {action.htmlBody ? (
-          <EmailBodyRenderer content={action.htmlBody} contentType="html" />
-        ) : (
-          <p className="text-body-sm text-on-surface whitespace-pre-wrap font-sans">
-            {action.body}
-          </p>
-        )}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-on-surface-variant text-[11px] font-sans">
+        <div className="flex items-baseline gap-2">
+          <span className="text-on-surface-variant font-semibold w-12 text-right">To:</span>
+          <span className="text-on-surface font-medium break-all select-all bg-surface-container-high/40 px-2 py-0.5 rounded-md">{action.to}</span>
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-on-surface-variant font-semibold w-12 text-right">Subject:</span>
+          <span className="text-on-surface font-semibold">{action.subject}</span>
+        </div>
+      </div>
+
+      {/* Email Body Content Window */}
+      <div className="bg-surface-container-lowest space-y-3">
+        <div className="border border-outline-variant/20 bg-white dark:bg-zinc-950 shadow-inner overflow-x-hidden">
+          {action.htmlBody ? (
+            <EmailBodyRenderer content={action.htmlBody} contentType="html" noBorder />
+          ) : (
+            <p className="text-body-sm text-on-surface whitespace-pre-wrap font-sans leading-relaxed">
+              {action.body}
+            </p>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 px-2 pb-2">
+          <span className="text-on-surface-variant/70 text-[10px] font-mono select-all">
             Draft ID: {action.draftId}
           </span>
           <a
             href={action.mailLink ?? "/mail?mailbox=drafts"}
-            className="text-primary hover:bg-primary/10 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold transition font-sans"
+            className="bg-primary text-on-primary hover:bg-primary-hover shadow-xs active:scale-[0.98] inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all font-sans"
           >
-            {action.messageId ? "Open draft" : "Open drafts"}
+            {action.messageId ? "Open in Gmail" : "Open Drafts"}
             <ExternalLink className="size-3.5" />
           </a>
         </div>
