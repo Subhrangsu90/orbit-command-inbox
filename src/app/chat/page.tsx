@@ -148,6 +148,8 @@ function ChatContainer() {
   const handleSend = (textToSend: string) => {
     if (!textToSend.trim() || chatInRoomMutation.isPending) return;
 
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
     if (!activeRoomId) {
       createRoomMutation.mutate(
         { title: "New Chat" },
@@ -156,6 +158,7 @@ function ChatContainer() {
             chatInRoomMutation.mutate({
               roomId: newRoom.id,
               content: textToSend.trim(),
+              timezone,
             });
           },
         },
@@ -164,6 +167,7 @@ function ChatContainer() {
       chatInRoomMutation.mutate({
         roomId: activeRoomId,
         content: textToSend.trim(),
+        timezone,
       });
     }
     setInput("");

@@ -2,6 +2,7 @@ import { createOpenAIChatClient } from "~/server/api/llm";
 import type { ResponseFunctionToolCall } from "openai/resources/responses/responses";
 import { emailsService } from "../emails/service";
 import { db } from "~/server/db";
+import { corsair } from "~/server/corsair";
 import { user } from "~/server/db/schema/auth";
 import { eq } from "drizzle-orm";
 import {
@@ -94,7 +95,11 @@ function summarizeModelError(error: unknown) {
 export const agentService = {
   async chat(
     tenantId: string,
-    input: { messages: Message[]; contextMessages?: Message[] },
+    input: {
+      messages: Message[];
+      contextMessages?: Message[];
+      timezone?: string;
+    },
   ): Promise<{
     response: string;
     actions: ExecutedAction[];
@@ -109,7 +114,36 @@ export const agentService = {
         messages: input.messages,
       };
     }
+
+    let userTimeZone = input.timezone;
+    if (!userTimeZone) {
+      try {
+        const client = corsair.withTenant(tenantId);
+        const eventsRes = await client.googlecalendar.api.events.getMany({
+          calendarId: "primary",
+          maxResults: 1,
+        });
+        if (eventsRes.timeZone) {
+          userTimeZone = eventsRes.timeZone;
+        }
+      } catch (error) {
+        console.error("Failed to fetch user timezone from calendar:", error);
+      }
+    }
+    userTimeZone ||= "UTC";
+
     const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", {
+      timeZone: userTimeZone,
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+    const timeStr = now.toLocaleTimeString("en-US", {
+      timeZone: userTimeZone,
+    });
+
     const senderIdentity = await getSenderIdentity(tenantId);
     const senderLabel = formatSenderIdentity(senderIdentity);
 
@@ -131,9 +165,9 @@ ${input.contextMessages.map((m) => `- [${m.role === 'user' ? 'User' : 'Assistant
 - Stay in role as a workspace assistant, not a general AI chatbot.
 
 Current date/time:
-- Date: ${now.toDateString()}
-- Local time: ${now.toLocaleTimeString()}
-- Time zone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
+- Date: ${dateStr}
+- Local time: ${timeStr}
+- Time zone: ${userTimeZone}
 
 Connected sender identity:
 - Drafts and sent emails use the user's connected Gmail account.

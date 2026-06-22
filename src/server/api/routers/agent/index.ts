@@ -27,6 +27,7 @@ export const agentRouter = createTRPCRouter({
     .input(
       z.object({
         messages: z.array(messageSchema),
+        timezone: z.string().optional(),
       }),
     )
     .output(
@@ -73,7 +74,7 @@ export const agentRouter = createTRPCRouter({
     }),
 
   chatInRoom: protectedProcedure
-    .input(z.object({ roomId: z.string(), content: z.string() }))
+    .input(z.object({ roomId: z.string(), content: z.string(), timezone: z.string().optional() }))
     .output(
       z.object({
         response: z.string(),
@@ -86,6 +87,7 @@ export const agentRouter = createTRPCRouter({
         input.roomId,
         ctx.session.user.id,
         input.content,
+        input.timezone,
       );
     }),
 });

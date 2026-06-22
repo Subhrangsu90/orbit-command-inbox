@@ -95,7 +95,7 @@ export const roomsService = {
     return { success: true };
   },
 
-  async chatInRoom(roomId: string, userId: string, content: string) {
+  async chatInRoom(roomId: string, userId: string, content: string, timezone?: string) {
     // Verify room ownership
     const room = await db
       .select()
@@ -174,6 +174,7 @@ Query: "${content.trim()}"`;
     const agentResult = await agentService.chat(userId, {
       messages: formattedHistory,
       contextMessages,
+      timezone,
     });
 
     // Save assistant's response to db
