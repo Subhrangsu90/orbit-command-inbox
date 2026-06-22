@@ -293,7 +293,7 @@ export const emailsService = {
 
   async send(
     tenantId: string,
-    input: { to: string; subject: string; body: string; threadId?: string },
+    input: { to: string; subject: string; body: string; htmlBody?: string; threadId?: string },
   ) {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
@@ -314,7 +314,7 @@ export const emailsService = {
     }
   },
 
-  async reply(tenantId: string, input: { id: string; body: string }) {
+  async reply(tenantId: string, input: { id: string; body: string; htmlBody?: string }) {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
 
@@ -345,6 +345,7 @@ export const emailsService = {
           to: recipient,
           subject,
           body: input.body,
+          htmlBody: input.htmlBody,
           inReplyTo: messageId || undefined,
           references: references || undefined,
         }),

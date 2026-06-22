@@ -1,9 +1,10 @@
 import { Send, Mail, FileText, ExternalLink, Reply, Search, CheckCircle2 } from "lucide-react";
 import type { ExecutedAction } from "../../types";
 import { ActionStatus, DetailRow } from "./shared";
+import { EmailBodyRenderer } from "~/app/_components/email/EmailBodyRenderer";
 
 export function SendEmailCard({ action }: { action: Extract<ExecutedAction, { type: "send_email" }> }) {
-  const hasBody = !!action.body;
+  const hasBody = !!action.body || !!action.htmlBody;
   return (
     <div className="border-outline-variant/60 bg-surface-container-highest overflow-hidden rounded-2xl border p-4">
       <div className="flex items-center gap-3">
@@ -35,9 +36,13 @@ export function SendEmailCard({ action }: { action: Extract<ExecutedAction, { ty
               value={action.subject}
             />
           </div>
-          <p className="text-body-sm text-on-surface whitespace-pre-wrap font-sans">
-            {action.body}
-          </p>
+          {action.htmlBody ? (
+            <EmailBodyRenderer content={action.htmlBody} contentType="html" />
+          ) : (
+            <p className="text-body-sm text-on-surface whitespace-pre-wrap font-sans">
+              {action.body}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -86,9 +91,13 @@ export function CreateEmailDraftCard({ action }: { action: Extract<ExecutedActio
             value={action.subject}
           />
         </div>
-        <p className="text-body-sm text-on-surface whitespace-pre-wrap font-sans">
-          {action.body}
-        </p>
+        {action.htmlBody ? (
+          <EmailBodyRenderer content={action.htmlBody} contentType="html" />
+        ) : (
+          <p className="text-body-sm text-on-surface whitespace-pre-wrap font-sans">
+            {action.body}
+          </p>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-on-surface-variant text-[11px] font-sans">
             Draft ID: {action.draftId}

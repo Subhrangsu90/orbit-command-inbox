@@ -51,6 +51,7 @@ export const sendEmailInputModel = z.object({
   to: z.string().email(),
   subject: z.string(),
   body: z.string(),
+  htmlBody: z.string().optional(),
   threadId: z.string().optional(),
 });
 
@@ -63,6 +64,7 @@ export const sendEmailOutputModel = z.object({
 export const replyEmailInputModel = z.object({
   id: z.string().min(1),
   body: z.string().min(1),
+  htmlBody: z.string().optional(),
 });
 
 export const trashEmailInputModel = z.object({
@@ -194,6 +196,7 @@ export const createDraftInputModel = z.object({
   to: z.string().email(),
   subject: z.string(),
   body: z.string(),
+  htmlBody: z.string().optional(),
   threadId: z.string().optional(),
 });
 

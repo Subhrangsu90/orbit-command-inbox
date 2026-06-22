@@ -137,23 +137,48 @@ export function createMimeMessage(input: {
   to: string;
   subject: string;
   body: string;
+  htmlBody?: string;
   inReplyTo?: string;
   references?: string;
 }) {
-  const headers = [
+  const mainHeaders = [
     `To: ${singleLine(input.to)}`,
     `Subject: ${encodeSubject(singleLine(input.subject))}`,
     "MIME-Version: 1.0",
-    'Content-Type: text/plain; charset="UTF-8"',
-    "Content-Transfer-Encoding: 8bit",
   ];
 
   if (input.inReplyTo)
-    headers.push(`In-Reply-To: ${singleLine(input.inReplyTo)}`);
+    mainHeaders.push(`In-Reply-To: ${singleLine(input.inReplyTo)}`);
   if (input.references)
-    headers.push(`References: ${singleLine(input.references)}`);
+    mainHeaders.push(`References: ${singleLine(input.references)}`);
 
-  return toBase64Url([...headers, "", input.body].join("\r\n"));
+  if (input.htmlBody) {
+    const boundary = `----=_Part_${Math.random().toString(36).slice(2)}_${Date.now()}`;
+    mainHeaders.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
+
+    const parts = [
+      ...mainHeaders,
+      "",
+      `--${boundary}`,
+      'Content-Type: text/plain; charset="UTF-8"',
+      "Content-Transfer-Encoding: 8bit",
+      "",
+      input.body,
+      "",
+      `--${boundary}`,
+      'Content-Type: text/html; charset="UTF-8"',
+      "Content-Transfer-Encoding: 8bit",
+      "",
+      input.htmlBody,
+      "",
+      `--${boundary}--`,
+    ];
+    return toBase64Url(parts.join("\r\n"));
+  } else {
+    mainHeaders.push('Content-Type: text/plain; charset="UTF-8"');
+    mainHeaders.push("Content-Transfer-Encoding: 8bit");
+    return toBase64Url([...mainHeaders, "", input.body].join("\r\n"));
+  }
 }
 
 export function isNotConnectedError(error: unknown) {

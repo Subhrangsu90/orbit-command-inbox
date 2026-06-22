@@ -8,7 +8,7 @@ import {
 export const emailDraftsService = {
   async createDraft(
     tenantId: string,
-    input: { to: string; subject: string; body: string; threadId?: string },
+    input: { to: string; subject: string; body: string; htmlBody?: string; threadId?: string },
   ) {
     await ensureCorsairConfigured();
     const client = corsair.withTenant(tenantId);
@@ -109,6 +109,7 @@ export const emailDraftsService = {
       to: string;
       subject: string;
       body: string;
+      htmlBody?: string;
       threadId?: string;
     },
   ) {

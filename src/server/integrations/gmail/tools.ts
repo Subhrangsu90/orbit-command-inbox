@@ -26,6 +26,10 @@ export const gmailTools: AgentTool[] = [
             type: "string",
             description: "The plain text body content of the email.",
           },
+          htmlBody: {
+            type: "string",
+            description: "The HTML-formatted body content of the email (highly recommended for formatting, proper paragraph spacing, and clickable links/anchors instead of raw URLs).",
+          },
         },
         required: ["to", "subject", "body"],
       },
@@ -36,6 +40,7 @@ export const gmailTools: AgentTool[] = [
         to: args.to as string,
         subject: args.subject as string,
         body: args.body as string,
+        htmlBody: args.htmlBody as string | undefined,
       });
       return {
         output: JSON.stringify({ success: true, messageId: res.id }),
@@ -44,6 +49,7 @@ export const gmailTools: AgentTool[] = [
           to: args.to as string,
           subject: args.subject as string,
           body: args.body as string | undefined,
+          htmlBody: args.htmlBody as string | undefined,
           success: res.success,
         },
       };
@@ -72,6 +78,10 @@ export const gmailTools: AgentTool[] = [
             type: "string",
             description: "The plain text draft body.",
           },
+          htmlBody: {
+            type: "string",
+            description: "The HTML-formatted body content of the draft (highly recommended for formatting, proper paragraph spacing, and clickable links/anchors instead of raw URLs).",
+          },
         },
         required: ["to", "subject", "body"],
       },
@@ -82,6 +92,7 @@ export const gmailTools: AgentTool[] = [
         to: args.to as string,
         subject: args.subject as string,
         body: args.body as string,
+        htmlBody: args.htmlBody as string | undefined,
       });
       const mailLink = res.messageId
         ? `/mail/${encodeURIComponent(res.messageId)}?mailbox=drafts&draftId=${encodeURIComponent(res.id)}`
@@ -98,6 +109,7 @@ export const gmailTools: AgentTool[] = [
           to: args.to as string,
           subject: args.subject as string,
           body: args.body as string,
+          htmlBody: args.htmlBody as string | undefined,
           draftId: res.id,
           messageId: res.messageId,
           mailLink,
@@ -123,6 +135,7 @@ export const gmailTools: AgentTool[] = [
             description: "The ID of the email message to reply to.",
           },
           body: { type: "string", description: "The reply message body." },
+          htmlBody: { type: "string", description: "The HTML-formatted reply message body." },
         },
         required: ["id", "body"],
       },
@@ -132,6 +145,7 @@ export const gmailTools: AgentTool[] = [
       const res = await emailsService.reply(tenantId, {
         id: args.id as string,
         body: args.body as string,
+        htmlBody: args.htmlBody as string | undefined,
       });
       return {
         output: JSON.stringify({
@@ -210,6 +224,9 @@ export const gmailSystemPrompt = `Email rules:
 - Always use create_email_draft before any new outbound email, even when the user says "send". The user must see the draft before it is sent.
 - Use send_email only after the user clearly confirms a draft or exact final content that was already shown in the conversation.
 - Use reply_to_email only when a concrete message id is available or was found via search_emails.
-- Email bodies should be polished plain text with greeting, concise body, and sign-off when appropriate.
+- Emails must contain both a plain text \`body\` and a beautifully formatted \`htmlBody\` for maximum compatibility and visual polish.
+- The \`htmlBody\` must be written using semantic HTML (e.g., wrap every paragraph in <p> tags, use <br> for line breaks within a paragraph, use <ul>/<li> for lists, and use <strong> for emphasis).
+- Ensure professional spacing: use paragraph blocks (<p>...</p>) to create clean spacing between paragraphs, greetings, and sign-offs.
+- Avoid raw URLs in \`htmlBody\`. Instead, render them using formatted descriptive HTML links, e.g. <a href="url">link text</a>. For git issues/projects, use the issue/project name or number (e.g. <a href="https://github.com/.../issues/12">Issue #12</a>). For calendar/event URLs, use <a href="url">Google Calendar Event</a>. For meeting links, use <a href="url">Join Google Meet</a> or <a href="url">Join Meeting</a>.
 - For sign-offs, prefer "Best regards," followed by the connected sender name when available; if no name is available, use the connected sender email or omit the name.
 - When listing or referencing searched emails in your text response, always include a markdown link to the email using its "mailLink" property (e.g. "[subject](/mail/...)").`;

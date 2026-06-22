@@ -70,6 +70,7 @@ export type ExecutedAction =
       to: string;
       subject: string;
       body?: string;
+      htmlBody?: string;
       success: boolean;
     }
   | {
@@ -77,6 +78,7 @@ export type ExecutedAction =
       to: string;
       subject: string;
       body: string;
+      htmlBody?: string;
       draftId: string;
       messageId?: string;
       mailLink?: string;
