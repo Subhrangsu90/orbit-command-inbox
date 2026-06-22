@@ -339,6 +339,8 @@ export const calendarTools: AgentTool[] = [
         description: e.description,
         location: e.location,
         attendees: e.attendees,
+        calendarLink: e.calendarLink,
+        meetingLink: e.meetingLink,
       }));
       return {
         output: JSON.stringify({ events: simplifiedEvents }),
@@ -363,4 +365,5 @@ export const calendarSystemPrompt = `Calendar and invitation rules:
 - Use update_calendar_event for rescheduling or changing a known event. Use delete_calendar_event only when the user clearly asks to cancel/delete a known event.
 - If attendees are included, create_calendar_event sends Google Calendar invitation updates automatically.
 - If the user asks for an invitation email too, create the calendar event first, then create_email_draft mentioning the meeting details and that a calendar invite was sent. Do not send the email until the user confirms the shown draft.
-- Do not invent a meeting link unless the user provides one; put provided video/meeting links in the event location or description and in the email body.`;
+- Do not invent a meeting link unless the user provides one; put provided video/meeting links in the event location or description and in the email body.
+- When listing or referencing calendar events in your text response, always include markdown links using "calendarLink" (labeled "[Google Calendar]") and "meetingLink" (labeled "[Join Meet]") when they are available in the tool output.`;

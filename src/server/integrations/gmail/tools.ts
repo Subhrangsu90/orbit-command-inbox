@@ -183,12 +183,14 @@ export const gmailTools: AgentTool[] = [
         maxResults: (args.maxResults as number) || 10,
       });
       // Send summarized info of messages back to model
+      const mailbox = (args.mailbox as string) || "inbox";
       const simplifiedMessages = res.messages.map((m) => ({
         id: m.id,
         subject: m.subject,
         from: m.from,
         date: m.date,
         snippet: m.snippet,
+        mailLink: `/mail/${encodeURIComponent(m.id)}?mailbox=${encodeURIComponent(mailbox)}`,
       }));
       return {
         output: JSON.stringify({ messages: simplifiedMessages }),
@@ -209,4 +211,5 @@ export const gmailSystemPrompt = `Email rules:
 - Use send_email only after the user clearly confirms a draft or exact final content that was already shown in the conversation.
 - Use reply_to_email only when a concrete message id is available or was found via search_emails.
 - Email bodies should be polished plain text with greeting, concise body, and sign-off when appropriate.
-- For sign-offs, prefer "Best regards," followed by the connected sender name when available; if no name is available, use the connected sender email or omit the name.`;
+- For sign-offs, prefer "Best regards," followed by the connected sender name when available; if no name is available, use the connected sender email or omit the name.
+- When listing or referencing searched emails in your text response, always include a markdown link to the email using its "mailLink" property (e.g. "[subject](/mail/...)").`;

@@ -9,6 +9,7 @@ import {
   Edit2,
   X,
   Check,
+  ArrowRight,
 } from "lucide-react";
 
 import { WorkspaceLayout } from "~/app/_components/WorkspaceLayout";
@@ -18,7 +19,7 @@ import { authClient } from "~/server/better-auth/client";
 import { toast } from "sonner";
 
 import type { ExecutedAction, ChatMessage } from "./types";
-import { ThinkingTimeline, isWorkspaceActionQuery } from "./_components/ThinkingTimeline";
+import { ThinkingTimeline, ThinkingTimelineDrawer, isWorkspaceActionQuery } from "./_components/ThinkingTimeline";
 import { AssistantMessageContent } from "./_components/AssistantMessageContent";
 import { ActionCard } from "./_components/ActionCard";
 import { ChatInputForm } from "./_components/ChatInputForm";
@@ -61,6 +62,7 @@ function ChatContainer() {
   const [renameInput, setRenameInput] = useState("");
   const [input, setInput] = useState("");
   const [showHistoryOnMobile, setShowHistoryOnMobile] = useState(false);
+  const [showTimelineDrawer, setShowTimelineDrawer] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -143,6 +145,18 @@ function ChatContainer() {
       renameInputRef.current?.select();
     }
   }, [editingRoomId]);
+
+  const isExecutingTools = chatInRoomMutation.isPending &&
+    !createRoomMutation.isPending &&
+    isWorkspaceActionQuery(chatInRoomMutation.variables?.content ?? "");
+
+  useEffect(() => {
+    if (isExecutingTools) {
+      setShowTimelineDrawer(true);
+    } else {
+      setShowTimelineDrawer(false);
+    }
+  }, [isExecutingTools]);
 
   // Handle message send
   const handleSend = (textToSend: string) => {
@@ -509,14 +523,21 @@ function ChatContainer() {
                         </span>
                       </div>
                     ) : (
-                      <div className="flex w-full flex-col p-1">
-                        <div className="mb-3 flex items-center gap-2 pb-1 text-on-surface">
+                      <div className="bg-surface-container-highest text-on-surface border-outline-variant flex min-w-0 flex-col gap-1 rounded-2xl rounded-tl-none border px-4 py-3 sm:rounded-3xl sm:px-5 sm:py-3.5">
+                        <div className="flex items-center gap-2">
                           <RefreshCw className="text-primary size-4 animate-spin" />
-                          <span className="text-label-md font-semibold">
-                            Executing Workspace Tools
+                          <span className="text-on-surface-variant sm:text-body-md animate-pulse text-sm font-medium">
+                            Executing workspace tools...
                           </span>
                         </div>
-                        <ThinkingTimeline />
+                        <button
+                          type="button"
+                          onClick={() => setShowTimelineDrawer(true)}
+                          className="text-primary hover:text-primary-hover flex items-center gap-1.5 text-xs font-semibold self-start mt-1 transition-all duration-300 group"
+                        >
+                          <span>View steps</span>
+                          <ArrowRight className="size-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                        </button>
                       </div>
                     )}
                   </div>
@@ -541,6 +562,13 @@ function ChatContainer() {
           )}
         </div>
       </div>
+      {/* Sliding Timeline Drawer */}
+      <ThinkingTimelineDrawer
+        isOpen={showTimelineDrawer}
+        onClose={() => setShowTimelineDrawer(false)}
+        query={chatInRoomMutation.variables?.content ?? ""}
+        isPending={chatInRoomMutation.isPending || createRoomMutation.isPending}
+      />
     </WorkspaceLayout>
   );
 }
