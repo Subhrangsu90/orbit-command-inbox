@@ -53,6 +53,16 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
   const cardRef = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<React.CSSProperties>({});
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -111,7 +121,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
-    if (!anchorPosition || window.innerWidth < 640) return;
+    if (!anchorPosition || isMobile) return;
 
     const target = e.target as HTMLElement;
     if (
@@ -156,7 +166,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    if (!anchorPosition || window.innerWidth < 640) {
+    if (!anchorPosition || isMobile) {
       setStyle({});
       return;
     }
@@ -208,7 +218,7 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, { capture: true });
     };
-  }, [isOpen, anchorPosition, dragOffset]);
+  }, [isOpen, anchorPosition, dragOffset, isMobile]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,7 +239,8 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
   if (!isOpen) return null;
 
   const isEdit = !!initialEvent;
-  const isPopover = !!anchorPosition;
+  const isPopover = !!anchorPosition && !isMobile;
+  const isPositioned = !isPopover || style.top !== undefined;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto sm:overflow-visible">
@@ -244,12 +255,23 @@ export const EventFormModal: React.FC<EventFormModalProps> = ({
       {/* Popover / Modal Wrapper */}
       <div
         ref={cardRef}
-        style={style}
+        onClick={(e) => {
+          if (!isPopover && e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
         className={`z-50 w-full ${
           isPopover
-            ? "animate-in fade-in zoom-in-95 duration-150 shadow-2xl max-w-[32rem]"
+            ? "shadow-2xl max-w-[32rem]"
             : "fixed inset-0 flex items-center justify-center p-3 sm:p-4"
         }`}
+        style={{
+          ...style,
+          opacity: isPositioned ? 1 : 0,
+          transform: isPopover ? (isPositioned ? "scale(1)" : "scale(0.95)") : undefined,
+          transition: isPopover ? "opacity 150ms ease-out, transform 150ms ease-out" : undefined,
+          pointerEvents: isPositioned ? "auto" : "none",
+        }}
       >
         <Card className="border-outline bg-surface-container-lowest relative w-full max-w-[32rem] space-y-4 rounded-2xl border p-4 text-left shadow-2xl duration-200 sm:p-6">
           <button

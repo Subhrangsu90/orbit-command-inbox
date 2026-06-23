@@ -45,6 +45,7 @@ export const ROUTES_CONFIG: Record<string, RouteMetadata> = {
       "smart scheduler",
       "inbox triage",
       "tacta",
+      "tacta ai",
       "tacta online",
       "productivity command center",
     ],
