@@ -404,6 +404,81 @@ function Pricing() {
 }
 
 /* ─────────────────────────────────────────────
+   FAQ Section
+───────────────────────────────────────────── */
+const FAQS = [
+  {
+    q: "How does Tacta connect to my Google account?",
+    a: "Tacta connects securely via Google OAuth. We request minimal read/write permissions for Gmail and Calendar to automate tasks. You can disconnect your account at any time with a single click in your Settings.",
+  },
+  {
+    q: "Is my email data safe and private?",
+    a: "Yes, security is our top priority. We process email summaries in-memory, and we never store your email contents on our databases. We are fully compliant with Google API Services User Data Policy, adhering to Limited Use requirements.",
+  },
+  {
+    q: "Can I use Tacta for multiple email addresses?",
+    a: "Absolutely! Tacta Pro supports connecting up to 5 different Google accounts, allowing you to view and automate all your emails and calendars in one unified, minimalist command center.",
+  },
+  {
+    q: "What is the workspace command center?",
+    a: "It's a keyboard-driven interface where you can press a simple shortcut key (like 'C' to create, 'J/K' to navigate, or 'R' to refresh) to manage all scheduling and inbox triage without touching your mouse.",
+  },
+  {
+    q: "How does the AI triage work?",
+    a: "Our background AI model analyzes inbound messages, generates bulleted summaries, highlights urgent deadlines, and categorizes emails automatically, saving you hours of manual sorting every day.",
+  },
+];
+
+function Faq() {
+  const [openIdx, setOpenIdx] = useState<number | null>(null);
+
+  const toggle = (idx: number) => {
+    setOpenIdx(openIdx === idx ? null : idx);
+  };
+
+  return (
+    <section id="faq" className="lp-section lp-section--tinted lp-faq-section">
+      <div className="lp-wrap">
+        <div className="lp-section__head">
+          <span className="lp-eyebrow">FAQ</span>
+          <h2 className="lp-section__title">Frequently Asked Questions</h2>
+          <p className="lp-section__sub">
+            Everything you need to know about Tacta integrations, privacy, and command-driven triage.
+          </p>
+        </div>
+        <div className="lp-faq__list">
+          {FAQS.map((faq, i) => {
+            const isOpen = openIdx === i;
+            return (
+              <div key={i} className="lp-card lp-faq__item">
+                <button
+                  className="lp-faq__question"
+                  onClick={() => toggle(i)}
+                  aria-expanded={isOpen}
+                >
+                  <span>{faq.q}</span>
+                  <span className={`material-symbols-outlined lp-faq__arrow${isOpen ? " lp-faq__arrow--open" : ""}`}>
+                    expand_more
+                  </span>
+                </button>
+                <div
+                  className={`lp-faq__answer-wrapper${isOpen ? " lp-faq__answer-wrapper--open" : ""}`}
+                  style={{ maxHeight: isOpen ? "200px" : "0" }}
+                >
+                  <div className="lp-faq__answer">
+                    <p>{faq.a}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────
    CTA Banner
 ───────────────────────────────────────────── */
 function CtaBanner() {
@@ -473,6 +548,7 @@ export default function LandingPage() {
         <Features />
         <Testimonials />
         <Pricing />
+        <Faq />
         <CtaBanner />
         <Footer />
       </div>
@@ -1104,6 +1180,64 @@ const CSS = `
   padding: 1.375rem 0;
   font-size: var(--text-label-md-size);
   color: color-mix(in srgb, var(--color-inverse-on-surface) 40%, transparent);
+}
+
+/* ── FAQ Section ── */
+.lp-faq-section {
+  border-top: 1px solid var(--color-outline-variant);
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+.lp-faq__list {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.lp-faq__item {
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+.lp-faq__question {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 1.25rem var(--space-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-on-surface);
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font-sans);
+}
+.lp-faq__question:hover {
+  background: var(--color-surface-container-low);
+}
+.lp-faq__arrow {
+  color: var(--color-primary);
+  transition: transform var(--duration-base) var(--ease-standard);
+}
+.lp-faq__arrow--open {
+  transform: rotate(180deg);
+}
+.lp-faq__answer-wrapper {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--duration-base) var(--ease-standard);
+}
+.lp-faq__answer {
+  padding: 0 var(--space-xl) 1.25rem var(--space-xl);
+  font-size: var(--text-body-md-size);
+  color: var(--color-on-surface-variant);
+  line-height: 1.65;
+}
+.lp-faq__answer p {
+  margin: 0;
 }
 
 /* ── Keyframes ── */

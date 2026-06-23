@@ -17,6 +17,7 @@ export const SITE_CONFIG = {
     "productivity command center",
   ],
   logoUrl: "https://www.tacta.online/tacta-logo-120.png",
+  ogImageUrl: "https://www.tacta.online/og-image.png",
 };
 
 export interface RouteMetadata {
@@ -145,20 +146,20 @@ export function getRouteMetadata(routeKey: keyof typeof ROUTES_CONFIG): Metadata
       siteName: SITE_CONFIG.name,
       images: [
         {
-          url: SITE_CONFIG.logoUrl,
-          width: 120,
-          height: 120,
-          alt: `${SITE_CONFIG.name} Logo`,
+          url: SITE_CONFIG.ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: `${SITE_CONFIG.name} Preview`,
         },
       ],
       locale: "en_US",
       type: "website",
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: [SITE_CONFIG.logoUrl],
+      images: [SITE_CONFIG.ogImageUrl],
     },
     robots: route.robots ?? {
       index: route.isPublic,
