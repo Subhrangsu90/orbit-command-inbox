@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   CalendarRange,
   ChevronLeft,
@@ -33,7 +33,6 @@ import { WeekView } from "./_components/WeekView";
 import { DayView } from "./_components/DayView";
 import { YearView } from "./_components/YearView";
 import { EventDetailModal } from "./_components/EventDetailModal";
-import { EventFormModal } from "./_components/EventFormModal";
 import { Sidebar } from "./_components/Sidebar";
 
 export default function CalendarPage() {
@@ -58,6 +57,7 @@ export default function CalendarPage() {
 }
 
 function CalendarContainer() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const linkedEventId = searchParams.get("eventId");
   const { preferences } = useWorkspacePreferences();
@@ -96,9 +96,6 @@ function CalendarContainer() {
     null,
   );
 
-  // Event category for Form Create/Edit
-  const [eventCalendarId, setEventCalendarId] = useState("primary");
-
   // Keep mini calendar month in sync with main view date
   useEffect(() => {
     setMiniCalendarMonth(currentDate);
@@ -135,8 +132,6 @@ function CalendarContainer() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(
     linkedEventId,
   );
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const [anchorPosition, setAnchorPosition] = useState<{
     top: number;
     left: number;
@@ -238,14 +233,7 @@ function CalendarContainer() {
     return myCalendars.find((cal) => cal.primary) || myCalendars[0];
   }, [myCalendars]);
 
-  useEffect(() => {
-    if (
-      primaryCalendar?.id &&
-      (eventCalendarId === "primary" || eventCalendarId === "subhrangsu-bera")
-    ) {
-      setEventCalendarId(primaryCalendar.id);
-    }
-  }, [primaryCalendar, eventCalendarId]);
+
 
   // Calendar query
   const {
@@ -332,27 +320,7 @@ function CalendarContainer() {
   };
 
   // Mutations
-  const createMutation = api.calendar.create.useMutation({
-    onSuccess: () => {
-      setIsCreateOpen(false);
-      void refetch();
-      toast.success("Calendar event created successfully!");
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to create calendar event");
-    },
-  });
 
-  const updateMutation = api.calendar.update.useMutation({
-    onSuccess: () => {
-      setIsEditOpen(false);
-      void refetch();
-      toast.success("Calendar event updated successfully!");
-    },
-    onError: (err) => {
-      toast.error(err.message || "Failed to update calendar event");
-    },
-  });
 
   const deleteMutation = api.calendar.delete.useMutation({
     onSuccess: () => {
@@ -365,100 +333,7 @@ function CalendarContainer() {
     },
   });
 
-  const handleCreateSubmit = (data: {
-    summary: string;
-    description: string;
-    location: string;
-    startDate: string;
-    startTimeInput: string;
-    endDate: string;
-    endTimeInput: string;
-    attendeesInput: string;
-    eventCalendarId: string;
-  }) => {
-    const startISO = new Date(
-      `${data.startDate}T${data.startTimeInput}:00`,
-    ).toISOString();
-    const endISO = new Date(
-      `${data.endDate}T${data.endTimeInput}:00`,
-    ).toISOString();
-    const attendees = data.attendeesInput
-      ? data.attendeesInput
-          .split(",")
-          .map((email) => email.trim())
-          .filter(Boolean)
-      : [];
 
-    const selectedCal = allCalendars.find((c) => c.id === data.eventCalendarId);
-    const taggedDescription = selectedCal
-      ? `${data.description ? data.description + "\n\n" : ""}[Calendar: ${selectedCal.name}]`
-      : data.description;
-
-    const calIdx = allCalendars.findIndex((c) => c.id === data.eventCalendarId);
-    const colorId = calIdx >= 0 ? String((calIdx % 8) + 1) : "1";
-
-    createMutation.mutate({
-      calendarId: data.eventCalendarId,
-      summary: data.summary,
-      description: taggedDescription,
-      location: data.location || undefined,
-      startTime: startISO,
-      endTime: endISO,
-      attendees: attendees.length > 0 ? attendees : undefined,
-      colorId,
-    });
-  };
-
-  const handleUpdateSubmit = (data: {
-    summary: string;
-    description: string;
-    location: string;
-    startDate: string;
-    startTimeInput: string;
-    endDate: string;
-    endTimeInput: string;
-    attendeesInput: string;
-    eventCalendarId: string;
-  }) => {
-    if (!selectedEventId) return;
-
-    const startISO = new Date(
-      `${data.startDate}T${data.startTimeInput}:00`,
-    ).toISOString();
-    const endISO = new Date(
-      `${data.endDate}T${data.endTimeInput}:00`,
-    ).toISOString();
-    const attendees = data.attendeesInput
-      ? data.attendeesInput
-          .split(",")
-          .map((email) => email.trim())
-          .filter(Boolean)
-      : [];
-
-    const selectedCal = allCalendars.find((c) => c.id === data.eventCalendarId);
-    let cleanDescription = data.description;
-    cleanDescription = cleanDescription
-      .replace(/\[Calendar:\s*[^\]]+\]/g, "")
-      .trim();
-    const taggedDescription = selectedCal
-      ? `${cleanDescription ? cleanDescription + "\n\n" : ""}[Calendar: ${selectedCal.name}]`
-      : cleanDescription;
-
-    const calIdx = allCalendars.findIndex((c) => c.id === data.eventCalendarId);
-    const colorId = calIdx >= 0 ? String((calIdx % 8) + 1) : "1";
-
-    updateMutation.mutate({
-      calendarId: data.eventCalendarId,
-      id: selectedEventId,
-      summary: data.summary,
-      description: taggedDescription,
-      location: data.location || undefined,
-      startTime: startISO,
-      endTime: endISO,
-      attendees: attendees.length > 0 ? attendees : undefined,
-      colorId,
-    });
-  };
 
   const handleDelete = (id: string, calendarId: string) => {
     if (confirm("Are you sure you want to delete this event?")) {
@@ -491,7 +366,7 @@ function CalendarContainer() {
 
   // Keyboard navigation: J/K for navigating range, C for create, R for refresh, T for today
   useEffect(() => {
-    if (!isCalConnected || isCreateOpen || isEditOpen) return;
+    if (!isCalConnected) return;
 
     function matchShortcut(e: KeyboardEvent, shortcutStr: string): boolean {
       if (!shortcutStr) return false;
@@ -542,8 +417,8 @@ function CalendarContainer() {
         handleNext();
       } else if (matchShortcut(e, preferences.shortcutCalendarCreate || "c")) {
         e.preventDefault();
-        // Fill form with current date
-        setIsCreateOpen(true);
+        const dateStr = dateKey(currentDate);
+        router.push(`/calendar/create?date=${dateStr}`);
       } else if (matchShortcut(e, preferences.shortcutCalendarRefresh || "r")) {
         e.preventDefault();
         void refetch();
@@ -557,8 +432,6 @@ function CalendarContainer() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
     isCalConnected,
-    isCreateOpen,
-    isEditOpen,
     viewMode,
     currentDate,
     preferences.shortcutCalendarPrev,
@@ -566,6 +439,7 @@ function CalendarContainer() {
     preferences.shortcutCalendarCreate,
     preferences.shortcutCalendarRefresh,
     preferences.shortcutCalendarToday,
+    router,
   ]);
 
   const selectedEvent =
@@ -601,12 +475,14 @@ function CalendarContainer() {
   // Click handler for empty day cells or hour slots
   const handleCellClick = (date: Date) => {
     setCurrentDate(date);
-    setIsCreateOpen(true);
+    const dateStr = dateKey(date);
+    router.push(`/calendar/create?date=${dateStr}`);
   };
 
   const handleTimeSlotClick = (date: Date, hour: number) => {
     setCurrentDate(date);
-    setIsCreateOpen(true);
+    const dateStr = dateKey(date);
+    router.push(`/calendar/create?date=${dateStr}`);
   };
 
   // Event list computations for rendering views
@@ -976,8 +852,6 @@ function CalendarContainer() {
               localSearchResults={localSearchResults}
               setSelectedEventId={handleSetSelectedEventId}
               onAnchorSelect={setAnchorPosition}
-              setIsCreateOpen={setIsCreateOpen}
-              setEventCalendarId={setEventCalendarId}
               primaryCalendar={primaryCalendar}
               allCalendars={allCalendars}
             />
@@ -1025,8 +899,6 @@ function CalendarContainer() {
                 localSearchResults={localSearchResults}
                 setSelectedEventId={handleSetSelectedEventId}
                 onAnchorSelect={setAnchorPosition}
-                setIsCreateOpen={setIsCreateOpen}
-                setEventCalendarId={setEventCalendarId}
                 primaryCalendar={primaryCalendar}
                 allCalendars={allCalendars}
               />
@@ -1043,45 +915,11 @@ function CalendarContainer() {
           anchorPosition={anchorPosition}
           formatTimeRange={formatTimeRange}
           getResponseBadgeClass={getResponseBadgeClass}
-          openEditModal={setIsEditOpen}
-          handleDelete={handleDelete}
-        />
-      )}
-
-      {/* Floating Create Event Modal */}
-      <EventFormModal
-        isOpen={isCreateOpen}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setAnchorPosition(null);
-        }}
-        anchorPosition={anchorPosition}
-        title="Create Event"
-        submitLabel="Create Event"
-        isPending={createMutation.isPending}
-        myCalendars={myCalendars}
-        otherCalendars={otherCalendars}
-        defaultDate={currentDate}
-        onSubmit={handleCreateSubmit}
-      />
-
-      {/* Floating Edit Event Modal */}
-      {selectedEvent && (
-        <EventFormModal
-          isOpen={isEditOpen}
-          onClose={() => {
-            setIsEditOpen(false);
-            setAnchorPosition(null);
+          openEditModal={(event) => {
+            const calendarId = event.calendarId || "primary";
+            router.push(`/calendar/edit?id=${event.id}&calendarId=${calendarId}`);
           }}
-          anchorPosition={anchorPosition}
-          title="Edit Event"
-          submitLabel="Save Changes"
-          isPending={updateMutation.isPending}
-          myCalendars={myCalendars}
-          otherCalendars={otherCalendars}
-          defaultDate={currentDate}
-          initialEvent={selectedEvent}
-          onSubmit={handleUpdateSubmit}
+          handleDelete={handleDelete}
         />
       )}
 

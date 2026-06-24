@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   ChevronDown,
@@ -9,7 +10,7 @@ import {
   Check,
 } from "lucide-react";
 import { Card } from "~/app/_components/ui/card";
-import { sameDay, CALENDAR_COLORS } from "../utils";
+import { sameDay, CALENDAR_COLORS, dateKey } from "../utils";
 
 interface SidebarProps {
   currentDate: Date;
@@ -33,8 +34,6 @@ interface SidebarProps {
   localSearchResults: any;
   setSelectedEventId: (id: string | null) => void;
   onAnchorSelect?: (rect: { top: number; left: number; width: number; height: number }) => void;
-  setIsCreateOpen: (open: boolean) => void;
-  setEventCalendarId: (id: string) => void;
   primaryCalendar: any;
   allCalendars: any[];
 }
@@ -61,11 +60,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   localSearchResults,
   setSelectedEventId,
   onAnchorSelect,
-  setIsCreateOpen,
-  setEventCalendarId,
   primaryCalendar,
   allCalendars,
 }) => {
+  const router = useRouter();
   const [createDropdownOpen, setCreateDropdownOpen] = useState(false);
 
   return (
@@ -88,37 +86,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="fixed inset-0 z-30" onClick={() => setCreateDropdownOpen(false)} />
             <div className="absolute left-0 mt-2 w-full bg-surface-container-lowest border border-outline rounded-xl shadow-xl z-40 py-1 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
               <button
-                onClick={(e) => {
+                onClick={() => {
                   setCreateDropdownOpen(false);
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  onAnchorSelect?.({
-                    top: rect.top,
-                    left: rect.left,
-                    width: rect.width,
-                    height: rect.height,
-                  });
-                  setEventCalendarId(primaryCalendar?.id || "primary");
-                  setIsCreateOpen(true);
+                  const calendarId = primaryCalendar?.id || "primary";
+                  const dateStr = dateKey(currentDate);
+                  router.push(`/calendar/create?calendarId=${calendarId}&date=${dateStr}`);
                 }}
                 className="w-full px-4 py-2.5 text-left text-xs font-semibold hover:bg-surface-container text-on-surface flex items-center gap-2"
               >
                 <Calendar className="size-3.5 text-primary" /> Event
               </button>
               <button
-                onClick={(e) => {
+                onClick={() => {
                   setCreateDropdownOpen(false);
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  onAnchorSelect?.({
-                    top: rect.top,
-                    left: rect.left,
-                    width: rect.width,
-                    height: rect.height,
-                  });
                   const tasksCal = allCalendars.find(
                     (c) => c.id.includes("tasks") || c.name.toLowerCase().includes("tasks")
                   );
-                  setEventCalendarId(tasksCal?.id || primaryCalendar?.id || "primary");
-                  setIsCreateOpen(true);
+                  const calendarId = tasksCal?.id || primaryCalendar?.id || "primary";
+                  const dateStr = dateKey(currentDate);
+                  router.push(`/calendar/create?calendarId=${calendarId}&date=${dateStr}`);
                 }}
                 className="w-full px-4 py-2.5 text-left text-xs font-semibold hover:bg-surface-container text-on-surface flex items-center gap-2"
               >

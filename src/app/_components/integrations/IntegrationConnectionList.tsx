@@ -2,32 +2,13 @@
 
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "~/app/_components/ui/button";
-import { GmailIcon, GoogleCalendarIcon } from "~/app/_components/ui/icons";
 import { api } from "~/trpc/react";
 import { toast } from "sonner";
+import { INTEGRATIONS, type IntegrationProvider } from "./constants";
 
 interface IntegrationConnectionListProps {
   variant: "settings" | "onboarding";
 }
-
-const INTEGRATIONS = [
-  {
-    id: "gmail" as const,
-    provider: "gmail" as const,
-    title: "Gmail",
-    onboardingDesc: "Read, route, and compose emails automatically via command rules.",
-    settingsDesc: "Read, send, and manage your emails",
-    Icon: GmailIcon,
-  },
-  {
-    id: "calendar" as const,
-    provider: "calendar" as const,
-    title: "Google Calendar",
-    onboardingDesc: "Synchronize events, process scheduled invites, and confirm slots.",
-    settingsDesc: "View and create calendar events",
-    Icon: GoogleCalendarIcon,
-  },
-];
 
 export function IntegrationConnectionList({ variant }: IntegrationConnectionListProps) {
   const { data: connections, isLoading, error, refetch } = api.integrations.getStatus.useQuery();
@@ -43,7 +24,7 @@ export function IntegrationConnectionList({ variant }: IntegrationConnectionList
     },
   });
 
-  const handleConnect = async (provider: "gmail" | "calendar") => {
+  const handleConnect = async (provider: IntegrationProvider) => {
     try {
       const { url } = await getConnectUrlMutation.mutateAsync({
         provider,
@@ -55,7 +36,7 @@ export function IntegrationConnectionList({ variant }: IntegrationConnectionList
     }
   };
 
-  const handleDisconnect = async (provider: "gmail" | "calendar") => {
+  const handleDisconnect = async (provider: IntegrationProvider) => {
     try {
       await disconnectMutation.mutateAsync({ provider });
     } catch (e) {
